@@ -80,13 +80,13 @@ class JtsTest {
   }
 
   @Test
-  void union() throws Exception {
+  void union_polygons() throws Exception {
     var inputPolygon1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/union/polygons/input-polygon-1.geojson"), StandardCharsets.UTF_8);
     var inputPolygon2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/union/polygons/input-polygon-2.geojson"), StandardCharsets.UTF_8);
     var expectedOutputPolygonGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union/output-polygon.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/union/polygons/output-polygon.geojson"), StandardCharsets.UTF_8);
 
     var inputPolygon1 = (Polygon) GEO_JSON_READER.read(inputPolygon1GeoJson);
     var inputPolygon2 = (Polygon) GEO_JSON_READER.read(inputPolygon2GeoJson);
@@ -99,13 +99,13 @@ class JtsTest {
   }
 
   @Test
-  void intersect() throws Exception {
+  void intersect_polygons() throws Exception {
     var inputPolygon1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersect/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/intersect/polygons/input-polygon-1.geojson"), StandardCharsets.UTF_8);
     var inputPolygon2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersect/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/intersect/polygons/input-polygon-2.geojson"), StandardCharsets.UTF_8);
     var expectedOutputPolygonGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersect/output-polygon.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/intersect/polygons/output-polygon.geojson"), StandardCharsets.UTF_8);
 
     var inputPolygon1 = (Polygon) GEO_JSON_READER.read(inputPolygon1GeoJson);
     var inputPolygon2 = (Polygon) GEO_JSON_READER.read(inputPolygon2GeoJson);
