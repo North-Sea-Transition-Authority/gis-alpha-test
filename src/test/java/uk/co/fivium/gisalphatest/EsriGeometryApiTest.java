@@ -9,6 +9,8 @@ import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ONSHORE_SR;
 
 import com.esri.core.geometry.OperatorDensifyByLength;
 import com.esri.core.geometry.OperatorGeneralize;
+import com.esri.core.geometry.Polygon;
+import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCLineString;
@@ -28,55 +30,55 @@ class EsriGeometryApiTest {
   private static final SpatialReference ONSHORE_SR = SpatialReference.create(ORACLE_ONSHORE_SR);
 
   @Test
-  void densification() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-input-line.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-output-line.geojson"), StandardCharsets.UTF_8);
+  void densify() throws Exception {
+    var inputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputGeoJson);
-    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputLineStringGeoJson);
+    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
     inputLineString.setSpatialReference(OFFSHORE_SR);
     expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
 
-    var densifiedEsriGeometry = OperatorDensifyByLength.local()
+    var densifiedEsriPolyline = (Polyline) OperatorDensifyByLength.local()
         .execute(inputLineString.getEsriGeometry(), roundDecimalPlaces(20.0 / 3600, 11), null);
     var densifiedLineString = (OGCLineString) OGCGeometry
-        .createFromEsriGeometry(densifiedEsriGeometry, OFFSHORE_SR);
+        .createFromEsriGeometry(densifiedEsriPolyline, OFFSHORE_SR);
 
     assertThat(getRoundedCoordinates(densifiedLineString, 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   @Test
-  void simplification() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-output-line.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-input-line.geojson"), StandardCharsets.UTF_8);
+  void simplify() throws Exception {
+    var inputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputGeoJson);
-    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputLineStringGeoJson);
+    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
     inputLineString.setSpatialReference(OFFSHORE_SR);
     expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
 
-    var simplifiedEsriGeometry = OperatorGeneralize.local()
-        .execute(inputLineString.getEsriGeometry(), Double.MAX_VALUE, false, null);
+    var simplifiedEsriPolyline = (Polyline) OperatorGeneralize.local()
+        .execute(inputLineString.getEsriGeometry(), 0.01, false, null);
     var simplifiedLineString = (OGCLineString) OGCGeometry
-        .createFromEsriGeometry(simplifiedEsriGeometry, OFFSHORE_SR);
+        .createFromEsriGeometry(simplifiedEsriPolyline, OFFSHORE_SR);
 
     assertThat(getRoundedCoordinates(simplifiedLineString, 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   @Test
-  void areaCalculation_offshore() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area-calculation-offshore-polygon.geojson"), StandardCharsets.UTF_8);
+  void area_offshore() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/area/input-offshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputGeoJson);
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
 
     inputPolygon.setSpatialReference(OFFSHORE_SR);
 
@@ -86,11 +88,11 @@ class EsriGeometryApiTest {
   }
 
   @Test
-  void areaCalculation_onshore() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area-calculation-onshore-polygon.geojson"), StandardCharsets.UTF_8);
+  void area_onshore() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/area/input-onshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputGeoJson);
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
 
     inputPolygon.setSpatialReference(ONSHORE_SR);
 
@@ -101,50 +103,50 @@ class EsriGeometryApiTest {
 
   @Test
   void union() throws Exception {
-    var input1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-input-geom-1.geojson"), StandardCharsets.UTF_8);
-    var input2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-input-geom-2.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-output-geom.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var input1Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input1GeoJson);
-    var input2Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input2GeoJson);
-    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon1GeoJson);
+    var inputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygonGeoJson);
 
-    input1Polygon.setSpatialReference(OFFSHORE_SR);
-    input2Polygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon1.setSpatialReference(OFFSHORE_SR);
+    inputPolygon2.setSpatialReference(OFFSHORE_SR);
     expectedOutputPolygon.setSpatialReference(OFFSHORE_SR);
 
-    var unionPolygon = (OGCPolygon) input1Polygon.union(input2Polygon);
+    var unionPolygon = (OGCPolygon) inputPolygon1.union(inputPolygon2);
 
     assertThat(getRoundedCoordinates(unionPolygon.exteriorRing(), 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.exteriorRing(), 11));
   }
 
   @Test
-  void intersection() throws Exception {
-    var input1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-input-geom-1.geojson"), StandardCharsets.UTF_8);
-    var input2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-input-geom-2.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-output-geom.geojson"), StandardCharsets.UTF_8);
+  void intersect() throws Exception {
+    var inputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var input1Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input1GeoJson);
-    var input2Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input2GeoJson);
-    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon1GeoJson);
+    var inputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygonGeoJson);
 
-    input1Polygon.setSpatialReference(OFFSHORE_SR);
-    input2Polygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon1.setSpatialReference(OFFSHORE_SR);
+    inputPolygon2.setSpatialReference(OFFSHORE_SR);
     expectedOutputPolygon.setSpatialReference(OFFSHORE_SR);
 
-    var intersectionPolygon = (OGCPolygon) input1Polygon.intersection(input2Polygon);
+    var intersectionPolygon = (OGCPolygon) inputPolygon1.intersection(inputPolygon2);
 
-    var simplifiedEsriGeometry = OperatorGeneralize.local()
+    var simplifiedExpectedOutputEsriPolygon = (Polygon) OperatorGeneralize.local()
         .execute(expectedOutputPolygon.getEsriGeometry(), 0.01, false, null);
     var simplifiedExpectedOutputPolygon = (OGCPolygon) OGCGeometry
-        .createFromEsriGeometry(simplifiedEsriGeometry, OFFSHORE_SR);
+        .createFromEsriGeometry(simplifiedExpectedOutputEsriPolygon, OFFSHORE_SR);
 
     assertThat(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));

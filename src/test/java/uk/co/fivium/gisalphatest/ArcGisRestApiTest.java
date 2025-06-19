@@ -7,6 +7,11 @@ import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ON
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_OFFSHORE_SR;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ONSHORE_SR;
 
+import com.esri.core.geometry.Envelope;
+import com.esri.core.geometry.MultiPoint;
+import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Polygon;
+import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCLineString;
@@ -42,14 +47,14 @@ class ArcGisRestApiTest {
   }
 
   @Test
-  void densification() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-input-line.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-output-line.geojson"), StandardCharsets.UTF_8);
+  void densify() throws Exception {
+    var inputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputGeoJson);
-    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputLineStringGeoJson);
+    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
     inputLineString.setSpatialReference(OFFSHORE_SR);
     expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
@@ -63,7 +68,8 @@ class ArcGisRestApiTest {
                 getFormDataAsString(
                     Map.of(
                         "sr", String.valueOf(ORACLE_OFFSHORE_SR),
-                        "geometries", "{\"geometryType\":\"esriGeometryPolyline\",\"geometries\":[" + inputLineString.asJson() + "]}",
+                        "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
+                            .formatted(getGeometryType(inputLineString), inputLineString.asJson()),
                         "maxSegmentLength", String.valueOf(roundDecimalPlaces(20.0 / 3600, 11)),
                         "geodesic", "false",
                         "f", "pjson"
@@ -73,9 +79,7 @@ class ArcGisRestApiTest {
         )
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
     var parsedResponse = objectMapper.readTree(response.body());
-
     var densifiedLineString = (OGCLineString) OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
 
     assertThat(getRoundedCoordinates(densifiedLineString, 11))
@@ -83,18 +87,25 @@ class ArcGisRestApiTest {
   }
 
   @Test
-  void simplification() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-output-line.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-input-line.geojson"), StandardCharsets.UTF_8);
+  void simplify() throws Exception {
+    var inputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputGeoJson);
-    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputLineStringGeoJson);
+    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
     inputLineString.setSpatialReference(OFFSHORE_SR);
     expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
 
+    var simplifiedLineString = (OGCLineString) simplify(inputLineString);
+
+    assertThat(getRoundedCoordinates(simplifiedLineString, 11))
+        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+  }
+
+  private OGCGeometry simplify(OGCGeometry geometry) throws Exception {
     var request = HttpRequest.newBuilder()
         .version(HttpClient.Version.HTTP_1_1)
         .uri(URI.create("https://data.nstauthority.co.uk/arcgis/rest/services/Utilities/Geometry/GeometryServer/generalize"))
@@ -104,8 +115,9 @@ class ArcGisRestApiTest {
                 getFormDataAsString(
                     Map.of(
                         "sr", String.valueOf(ORACLE_OFFSHORE_SR),
-                        "geometries", "{\"geometryType\":\"esriGeometryPolyline\",\"geometries\":[" + inputLineString.asJson() + "]}",
-                        "maxDeviation", String.valueOf(Double.MAX_VALUE),
+                        "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
+                            .formatted(getGeometryType(geometry), geometry.asJson()),
+                        "maxDeviation", String.valueOf(0.01),
                         "f", "pjson"
                     )
                 )
@@ -113,21 +125,16 @@ class ArcGisRestApiTest {
         )
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
     var parsedResponse = objectMapper.readTree(response.body());
-
-    var simplifiedLineString = (OGCLineString) OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
-
-    assertThat(getRoundedCoordinates(simplifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    return OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
   }
 
   @Test
-  void areaCalculation_offshore() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area-calculation-offshore-polygon.geojson"), StandardCharsets.UTF_8);
+  void area_offshore() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/area/input-offshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputGeoJson);
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
 
     inputPolygon.setSpatialReference(OFFSHORE_SR);
 
@@ -140,7 +147,7 @@ class ArcGisRestApiTest {
                 getFormDataAsString(
                     Map.of(
                         "sr", String.valueOf(ORACLE_OFFSHORE_SR),
-                        "polygons", "[" + inputPolygon.asJson() + "]",
+                        "polygons", "[%s]".formatted(inputPolygon.asJson()),
                         "calculationType", "geodesic",
                         "f", "pjson"
                     )
@@ -149,7 +156,6 @@ class ArcGisRestApiTest {
         )
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
     var parsedResponse = objectMapper.readTree(response.body());
 
     assertThat(roundDecimalPlaces(parsedResponse.get("areas").get(0).asDouble() / 1000000, 4))
@@ -157,11 +163,11 @@ class ArcGisRestApiTest {
   }
 
   @Test
-  void areaCalculation_onshore() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area-calculation-onshore-polygon.geojson"), StandardCharsets.UTF_8);
+  void area_onshore() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/area/input-onshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputGeoJson);
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
 
     inputPolygon.setSpatialReference(ONSHORE_SR);
 
@@ -174,7 +180,7 @@ class ArcGisRestApiTest {
                 getFormDataAsString(
                     Map.of(
                         "sr", String.valueOf(ORACLE_ONSHORE_SR),
-                        "polygons", "[" + inputPolygon.asJson() + "]",
+                        "polygons", "[%s]".formatted(inputPolygon.asJson()),
                         "calculationType", "planar", // This fails if it's geodesic as it's slightly off, but passes if it's planar?
                         "f", "pjson"
                     )
@@ -183,7 +189,6 @@ class ArcGisRestApiTest {
         )
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
     var parsedResponse = objectMapper.readTree(response.body());
 
     assertThat(roundDecimalPlaces(parsedResponse.get("areas").get(0).asDouble() / 1000000, 11))
@@ -192,19 +197,19 @@ class ArcGisRestApiTest {
 
   @Test
   void union() throws Exception {
-    var input1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-input-geom-1.geojson"), StandardCharsets.UTF_8);
-    var input2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-input-geom-2.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-output-geom.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var input1Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input1GeoJson);
-    var input2Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input2GeoJson);
-    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon1GeoJson);
+    var inputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygonGeoJson);
 
-    input1Polygon.setSpatialReference(OFFSHORE_SR);
-    input2Polygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon1.setSpatialReference(OFFSHORE_SR);
+    inputPolygon2.setSpatialReference(OFFSHORE_SR);
     expectedOutputPolygon.setSpatialReference(OFFSHORE_SR);
 
     var request = HttpRequest.newBuilder()
@@ -216,7 +221,8 @@ class ArcGisRestApiTest {
                 getFormDataAsString(
                     Map.of(
                         "sr", String.valueOf(ORACLE_OFFSHORE_SR),
-                        "geometries", "{\"geometryType\":\"esriGeometryPolygon\",\"geometries\":[" + input1Polygon.asJson() + "," + input2Polygon.asJson() + "]}",
+                        "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s,%s]}"
+                            .formatted(getGeometryType(inputPolygon1), inputPolygon1.asJson(), inputPolygon2.asJson()),
                         "f", "pjson"
                     )
                 )
@@ -224,9 +230,7 @@ class ArcGisRestApiTest {
         )
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
     var parsedResponse = objectMapper.readTree(response.body());
-
     var unionPolygon = (OGCPolygon) OGCGeometry.fromJson(parsedResponse.get("geometry").toString());
 
     assertThat(getRoundedCoordinates(unionPolygon.exteriorRing(), 9))
@@ -234,20 +238,20 @@ class ArcGisRestApiTest {
   }
 
   @Test
-  void intersection() throws Exception {
-    var input1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-input-geom-1.geojson"), StandardCharsets.UTF_8);
-    var input2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-input-geom-2.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-output-geom.geojson"), StandardCharsets.UTF_8);
+  void intersect() throws Exception {
+    var inputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var input1Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input1GeoJson);
-    var input2Polygon = (OGCPolygon) OGCGeometry.fromGeoJson(input2GeoJson);
-    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputGeoJson);
+    var inputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon1GeoJson);
+    var inputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygonGeoJson);
 
-    input1Polygon.setSpatialReference(OFFSHORE_SR);
-    input2Polygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon1.setSpatialReference(OFFSHORE_SR);
+    inputPolygon2.setSpatialReference(OFFSHORE_SR);
     expectedOutputPolygon.setSpatialReference(OFFSHORE_SR);
 
     var request = HttpRequest.newBuilder()
@@ -259,8 +263,10 @@ class ArcGisRestApiTest {
                 getFormDataAsString(
                     Map.of(
                         "sr", String.valueOf(ORACLE_OFFSHORE_SR),
-                        "geometries", "{\"geometryType\":\"esriGeometryPolygon\",\"geometries\":[" + input1Polygon.asJson() + "]}",
-                        "geometry", "{\"geometryType\":\"esriGeometryPolygon\",\"geometry\":" + input2Polygon.asJson() + "}",
+                        "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
+                            .formatted(getGeometryType(inputPolygon1), inputPolygon1.asJson()),
+                        "geometry", "{\"geometryType\":\"%s\",\"geometry\":%s}"
+                            .formatted(getGeometryType(inputPolygon2), inputPolygon2.asJson()),
                         "f", "pjson"
                     )
                 )
@@ -268,31 +274,10 @@ class ArcGisRestApiTest {
         )
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
     var parsedResponse = objectMapper.readTree(response.body());
-
     var intersectionPolygon = (OGCPolygon) OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
 
-    var simplifyRequest = HttpRequest.newBuilder()
-        .version(HttpClient.Version.HTTP_1_1)
-        .uri(URI.create("https://data.nstauthority.co.uk/arcgis/rest/services/Utilities/Geometry/GeometryServer/generalize"))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .POST(
-            HttpRequest.BodyPublishers.ofString(
-                getFormDataAsString(
-                    Map.of(
-                        "sr", String.valueOf(ORACLE_OFFSHORE_SR),
-                        "geometries", "{\"geometryType\":\"esriGeometryPolygon\",\"geometries\":[" + expectedOutputPolygon.asJson() + "]}",
-                        "maxDeviation", String.valueOf(0.01),
-                        "f", "pjson"
-                    )
-                )
-            )
-        )
-        .build();
-    var simplifyResponse = httpClient.send(simplifyRequest, HttpResponse.BodyHandlers.ofString());
-    var parsedSimplifyResponse = objectMapper.readTree(simplifyResponse.body());
-    var simplifiedExpectedOutputPolygon = (OGCPolygon) OGCGeometry.fromJson(parsedSimplifyResponse.get("geometries").get(0).toString());
+    var simplifiedExpectedOutputPolygon = (OGCPolygon) simplify(expectedOutputPolygon);
 
     assertThat(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
@@ -320,5 +305,26 @@ class ArcGisRestApiTest {
     var coordinates = new ArrayList<>(coordinatesSet);
     coordinates.sort(Comparator.comparing(Coordinate::x).thenComparing(Coordinate::z));
     return coordinates;
+  }
+
+  private String getGeometryType(OGCGeometry geometry) {
+    var esriGeometry = geometry.getEsriGeometry();
+    // there are five types: esriGeometryPoint
+    // esriGeometryMultipoint
+    // esriGeometryPolyline
+    // esriGeometryPolygon
+    // esriGeometryEnvelope
+    if (esriGeometry instanceof Point)
+      return "esriGeometryPoint";
+    if (esriGeometry instanceof MultiPoint)
+      return "esriGeometryMultipoint";
+    if (esriGeometry instanceof Polyline)
+      return "esriGeometryPolyline";
+    if (esriGeometry instanceof Polygon)
+      return "esriGeometryPolygon";
+    if (esriGeometry instanceof Envelope)
+      return "esriGeometryEnvelope";
+    else
+      return null;
   }
 }

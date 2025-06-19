@@ -24,14 +24,14 @@ class JtsTest {
   private static final GeoJsonReader GEO_JSON_READER = new GeoJsonReader();
 
   @Test
-  void densification() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-input-line.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-output-line.geojson"), StandardCharsets.UTF_8);
+  void densify() throws Exception {
+    var inputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (LineString) GEO_JSON_READER.read(inputGeoJson);
-    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputGeoJson);
+    var inputLineString = (LineString) GEO_JSON_READER.read(inputLineStringGeoJson);
+    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
 
     var densifier = new Densifier(inputLineString);
     densifier.setDistanceTolerance(roundDecimalPlaces(20.0 / 3600, 11));
@@ -42,38 +42,38 @@ class JtsTest {
   }
 
   @Test
-  void simplification() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-output-line.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/densification-input-line.geojson"), StandardCharsets.UTF_8);
+  void simplify() throws Exception {
+    var inputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (LineString) GEO_JSON_READER.read(inputGeoJson);
-    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputGeoJson);
+    var inputLineString = (LineString) GEO_JSON_READER.read(inputLineStringGeoJson);
+    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
 
-    var simplifiedLineString = (LineString) DouglasPeuckerSimplifier.simplify(inputLineString, Double.MAX_VALUE);
+    var simplifiedLineString = (LineString) DouglasPeuckerSimplifier.simplify(inputLineString, 0.01);
 
     assertThat(getRoundedCoordinates(simplifiedLineString, 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   @Test
-  void areaCalculation_offshore() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area-calculation-offshore-polygon.geojson"), StandardCharsets.UTF_8);
+  void area_offshore() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/area/input-offshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (Polygon) GEO_JSON_READER.read(inputGeoJson);
+    var inputPolygon = (Polygon) GEO_JSON_READER.read(inputPolygonGeoJson);
 
     assertThat(roundDecimalPlaces(inputPolygon.getArea() / 1000000, 11))
         .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_OFFSHORE_POLYGON_AREA_KM2, 11));
   }
 
   @Test
-  void areaCalculation_onshore() throws Exception {
-    var inputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area-calculation-onshore-polygon.geojson"), StandardCharsets.UTF_8);
+  void area_onshore() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/area/input-onshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (Polygon) GEO_JSON_READER.read(inputGeoJson);
+    var inputPolygon = (Polygon) GEO_JSON_READER.read(inputPolygonGeoJson);
 
     assertThat(roundDecimalPlaces(inputPolygon.getArea() / 1000000, 11))
         .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_ONSHORE_POLYGON_AREA_KM2, 11));
@@ -81,42 +81,42 @@ class JtsTest {
 
   @Test
   void union() throws Exception {
-    var input1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-input-geom-1.geojson"), StandardCharsets.UTF_8);
-    var input2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-input-geom-2.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/union-output-geom.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var input1Polygon = (Polygon) GEO_JSON_READER.read(input1GeoJson);
-    var input2Polygon = (Polygon) GEO_JSON_READER.read(input2GeoJson);
-    var expectedOutputPolygon = (Polygon) GEO_JSON_READER.read(expectedOutputGeoJson);
+    var inputPolygon1 = (Polygon) GEO_JSON_READER.read(inputPolygon1GeoJson);
+    var inputPolygon2 = (Polygon) GEO_JSON_READER.read(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (Polygon) GEO_JSON_READER.read(expectedOutputPolygonGeoJson);
 
-    var unionPolygon = (Polygon) input1Polygon.union(input2Polygon);
+    var unionPolygon = (Polygon) inputPolygon1.union(inputPolygon2);
 
     assertThat(getRoundedCoordinates(unionPolygon.getExteriorRing(), 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.getExteriorRing(), 11));
   }
 
   @Test
-  void intersection() throws Exception {
-    var input1GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-input-geom-1.geojson"), StandardCharsets.UTF_8);
-    var input2GeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-input-geom-2.geojson"), StandardCharsets.UTF_8);
-    var expectedOutputGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/intersection-output-geom.geojson"), StandardCharsets.UTF_8);
+  void intersect() throws Exception {
+    var inputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/input-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var inputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/input-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var input1Polygon = (Polygon) GEO_JSON_READER.read(input1GeoJson);
-    var input2Polygon = (Polygon) GEO_JSON_READER.read(input2GeoJson);
-    var expectedOutputPolygon = (Polygon) GEO_JSON_READER.read(expectedOutputGeoJson);
+    var inputPolygon1 = (Polygon) GEO_JSON_READER.read(inputPolygon1GeoJson);
+    var inputPolygon2 = (Polygon) GEO_JSON_READER.read(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (Polygon) GEO_JSON_READER.read(expectedOutputPolygonGeoJson);
 
-    var intersectionPolygon = (Polygon) input1Polygon.intersection(input2Polygon);
+    var intersectionPolygon = (Polygon) inputPolygon1.intersection(inputPolygon2);
 
-    var simplifiedExpectedOutputGeoJson = (Polygon) DouglasPeuckerSimplifier.simplify(expectedOutputPolygon, 0.01);
+    var simplifiedExpectedOutputPolygon = (Polygon) DouglasPeuckerSimplifier.simplify(expectedOutputPolygon, 0.01);
 
     assertThat(getRoundedCoordinates(intersectionPolygon.getExteriorRing(), 5))
-        .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputGeoJson.getExteriorRing(), 5));
+        .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.getExteriorRing(), 5));
   }
 
   private List<Coordinate> getRoundedCoordinates(LineString lineString, int places) {
