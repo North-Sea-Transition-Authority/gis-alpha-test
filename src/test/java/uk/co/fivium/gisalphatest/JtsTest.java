@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_OFFSHORE_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ONSHORE_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_OFFSHORE_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ONSHORE_SR;
 
 import com.google.common.io.Resources;
 import java.nio.charset.StandardCharsets;
@@ -13,15 +15,20 @@ import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.densify.Densifier;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import uk.co.fivium.gisalphatest.util.Coordinate;
 
 class JtsTest {
 
-  private static final GeoJsonReader GEO_JSON_READER = new GeoJsonReader();
+  private static final GeoJsonReader OFFSHORE_GEO_JSON_READER =
+      new GeoJsonReader(new GeometryFactory(new PrecisionModel(), ORACLE_OFFSHORE_SR));
+  private static final GeoJsonReader ONSHORE_GEO_JSON_READER =
+      new GeoJsonReader(new GeometryFactory(new PrecisionModel(), ORACLE_ONSHORE_SR));
 
   @Test
   void densify() throws Exception {
@@ -30,8 +37,8 @@ class JtsTest {
     var expectedOutputLineStringGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/densify/output-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (LineString) GEO_JSON_READER.read(inputLineStringGeoJson);
-    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
+    var inputLineString = (LineString) OFFSHORE_GEO_JSON_READER.read(inputLineStringGeoJson);
+    var expectedOutputLineString = (LineString) OFFSHORE_GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
 
     var densifier = new Densifier(inputLineString);
     densifier.setDistanceTolerance(roundDecimalPlaces(20.0 / 3600, 11));
@@ -48,8 +55,8 @@ class JtsTest {
     var expectedOutputLineStringGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/densify/input-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString = (LineString) GEO_JSON_READER.read(inputLineStringGeoJson);
-    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
+    var inputLineString = (LineString) OFFSHORE_GEO_JSON_READER.read(inputLineStringGeoJson);
+    var expectedOutputLineString = (LineString) OFFSHORE_GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
 
     var simplifiedLineString = (LineString) DouglasPeuckerSimplifier.simplify(inputLineString, 0.01);
 
@@ -62,7 +69,7 @@ class JtsTest {
     var inputPolygonGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/area/input-offshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (Polygon) GEO_JSON_READER.read(inputPolygonGeoJson);
+    var inputPolygon = (Polygon) OFFSHORE_GEO_JSON_READER.read(inputPolygonGeoJson);
 
     assertThat(roundDecimalPlaces(inputPolygon.getArea() / 1000000, 11))
         .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_OFFSHORE_POLYGON_AREA_KM2, 11));
@@ -73,7 +80,7 @@ class JtsTest {
     var inputPolygonGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/area/input-onshore-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon = (Polygon) GEO_JSON_READER.read(inputPolygonGeoJson);
+    var inputPolygon = (Polygon) ONSHORE_GEO_JSON_READER.read(inputPolygonGeoJson);
 
     assertThat(roundDecimalPlaces(inputPolygon.getArea() / 1000000, 11))
         .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_ONSHORE_POLYGON_AREA_KM2, 11));
@@ -88,9 +95,9 @@ class JtsTest {
     var expectedOutputPolygonGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/union/polygons/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon1 = (Polygon) GEO_JSON_READER.read(inputPolygon1GeoJson);
-    var inputPolygon2 = (Polygon) GEO_JSON_READER.read(inputPolygon2GeoJson);
-    var expectedOutputPolygon = (Polygon) GEO_JSON_READER.read(expectedOutputPolygonGeoJson);
+    var inputPolygon1 = (Polygon) OFFSHORE_GEO_JSON_READER.read(inputPolygon1GeoJson);
+    var inputPolygon2 = (Polygon) OFFSHORE_GEO_JSON_READER.read(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (Polygon) OFFSHORE_GEO_JSON_READER.read(expectedOutputPolygonGeoJson);
 
     var unionPolygon = (Polygon) inputPolygon1.union(inputPolygon2);
 
@@ -107,9 +114,9 @@ class JtsTest {
     var expectedOutputLineStringGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/union/line-strings/output-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString1 = (LineString) GEO_JSON_READER.read(inputLineString1GeoJson);
-    var inputLineString2 = (LineString) GEO_JSON_READER.read(inputLineString2GeoJson);
-    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
+    var inputLineString1 = (LineString) OFFSHORE_GEO_JSON_READER.read(inputLineString1GeoJson);
+    var inputLineString2 = (LineString) OFFSHORE_GEO_JSON_READER.read(inputLineString2GeoJson);
+    var expectedOutputLineString = (LineString) OFFSHORE_GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
 
     var unionLineString = (LineString) inputLineString1.union(inputLineString2);
 
@@ -126,9 +133,9 @@ class JtsTest {
     var expectedOutputPolygonGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/intersect/polygons/output-polygon.geojson"), StandardCharsets.UTF_8);
 
-    var inputPolygon1 = (Polygon) GEO_JSON_READER.read(inputPolygon1GeoJson);
-    var inputPolygon2 = (Polygon) GEO_JSON_READER.read(inputPolygon2GeoJson);
-    var expectedOutputPolygon = (Polygon) GEO_JSON_READER.read(expectedOutputPolygonGeoJson);
+    var inputPolygon1 = (Polygon) OFFSHORE_GEO_JSON_READER.read(inputPolygon1GeoJson);
+    var inputPolygon2 = (Polygon) OFFSHORE_GEO_JSON_READER.read(inputPolygon2GeoJson);
+    var expectedOutputPolygon = (Polygon) OFFSHORE_GEO_JSON_READER.read(expectedOutputPolygonGeoJson);
 
     var intersectionPolygon = (Polygon) inputPolygon1.intersection(inputPolygon2);
 
@@ -147,9 +154,9 @@ class JtsTest {
     var expectedOutputLineStringGeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/intersect/line-strings/output-line-string.geojson"), StandardCharsets.UTF_8);
 
-    var inputLineString1 = (LineString) GEO_JSON_READER.read(inputLineString1GeoJson);
-    var inputLineString2 = (LineString) GEO_JSON_READER.read(inputLineString2GeoJson);
-    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
+    var inputLineString1 = (LineString) OFFSHORE_GEO_JSON_READER.read(inputLineString1GeoJson);
+    var inputLineString2 = (LineString) OFFSHORE_GEO_JSON_READER.read(inputLineString2GeoJson);
+    var expectedOutputLineString = (LineString) OFFSHORE_GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
 
     var intersectionLineString = (LineString) inputLineString1.intersection(inputLineString2);
 
