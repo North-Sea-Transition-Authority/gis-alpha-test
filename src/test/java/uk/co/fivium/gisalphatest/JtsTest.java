@@ -99,6 +99,25 @@ class JtsTest {
   }
 
   @Test
+  void union_lineStrings() throws Exception {
+    var inputLineString1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/line-strings/input-line-string-1.geojson"), StandardCharsets.UTF_8);
+    var inputLineString2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/line-strings/input-line-string-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/line-strings/output-line-string.geojson"), StandardCharsets.UTF_8);
+
+    var inputLineString1 = (LineString) GEO_JSON_READER.read(inputLineString1GeoJson);
+    var inputLineString2 = (LineString) GEO_JSON_READER.read(inputLineString2GeoJson);
+    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
+
+    var unionLineString = (LineString) inputLineString1.union(inputLineString2);
+
+    assertThat(getRoundedCoordinates(unionLineString, 11))
+        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+  }
+
+  @Test
   void intersect_polygons() throws Exception {
     var inputPolygon1GeoJson = Resources.toString(
         Resources.getResource("oracle-test-cases/intersect/polygons/input-polygon-1.geojson"), StandardCharsets.UTF_8);
@@ -117,6 +136,25 @@ class JtsTest {
 
     assertThat(getRoundedCoordinates(intersectionPolygon.getExteriorRing(), 5))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.getExteriorRing(), 5));
+  }
+
+  @Test
+  void intersect_lineStrings() throws Exception {
+    var inputLineString1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/line-strings/input-line-string-1.geojson"), StandardCharsets.UTF_8);
+    var inputLineString2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/line-strings/input-line-string-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/line-strings/output-line-string.geojson"), StandardCharsets.UTF_8);
+
+    var inputLineString1 = (LineString) GEO_JSON_READER.read(inputLineString1GeoJson);
+    var inputLineString2 = (LineString) GEO_JSON_READER.read(inputLineString2GeoJson);
+    var expectedOutputLineString = (LineString) GEO_JSON_READER.read(expectedOutputLineStringGeoJson);
+
+    var intersectionLineString = (LineString) inputLineString1.intersection(inputLineString2);
+
+    assertThat(getRoundedCoordinates(intersectionLineString, 5))
+        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 5));
   }
 
   private List<Coordinate> getRoundedCoordinates(LineString lineString, int places) {
