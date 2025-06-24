@@ -15,6 +15,7 @@ import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCLineString;
+import com.esri.core.geometry.ogc.OGCMultiLineString;
 import com.esri.core.geometry.ogc.OGCPolygon;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.Resources;
@@ -335,6 +336,140 @@ class ArcGisRestApiTest {
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     var parsedResponse = objectMapper.readTree(response.body());
     return OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
+  }
+
+  @Test
+  void cut_simple() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/simple/input-polygon.geojson"), StandardCharsets.UTF_8);
+    var inputCutterLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/simple/input-cutter-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/simple/output-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/simple/output-polygon-2.geojson"), StandardCharsets.UTF_8);
+
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
+    var inputCutterLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputCutterLineStringGeoJson);
+    var expectedOutputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon1GeoJson);
+    var expectedOutputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon2GeoJson);
+
+    inputPolygon.setSpatialReference(OFFSHORE_SR);
+    inputCutterLineString.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon1.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon2.setSpatialReference(OFFSHORE_SR);
+
+    var cutPolygons = cut(inputPolygon, inputCutterLineString);
+
+    var cutPolygon1 = (OGCPolygon) cutPolygons.get(0);
+    var cutPolygon2 = (OGCPolygon) cutPolygons.get(1);
+
+    // Note: There are additional points in the results, so use containsAll
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 9));
+  }
+
+  @Test
+  void cut_coastline() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/coastline/input-polygon.geojson"), StandardCharsets.UTF_8);
+    var inputCutterLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/coastline/input-cutter-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/coastline/output-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/coastline/output-polygon-2.geojson"), StandardCharsets.UTF_8);
+
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
+    var inputCutterLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputCutterLineStringGeoJson);
+    var expectedOutputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon1GeoJson);
+    var expectedOutputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon2GeoJson);
+
+    inputPolygon.setSpatialReference(OFFSHORE_SR);
+    inputCutterLineString.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon1.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon2.setSpatialReference(OFFSHORE_SR);
+
+    var cutPolygons = cut(inputPolygon, inputCutterLineString);
+
+    var cutPolygon1 = (OGCPolygon) cutPolygons.get(0);
+    var cutPolygon2 = (OGCPolygon) cutPolygons.get(1);
+
+    // Note: There are additional points in the results, so use containsAll
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 9));
+  }
+
+  @Test
+  void cut_multipleCuts() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/multiple-cuts/input-polygon.geojson"), StandardCharsets.UTF_8);
+    var inputCutterMultiLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/multiple-cuts/input-cutter-multi-line-string.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/multiple-cuts/output-polygon-1.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/multiple-cuts/output-polygon-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputPolygon3GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/multiple-cuts/output-polygon-3.geojson"), StandardCharsets.UTF_8);
+
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
+    var inputCutterMultiLineString = (OGCMultiLineString) OGCGeometry.fromGeoJson(inputCutterMultiLineStringGeoJson);
+    var expectedOutputPolygon1 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon1GeoJson);
+    var expectedOutputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon2GeoJson);
+    var expectedOutputPolygon3 = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygon3GeoJson);
+
+    inputPolygon.setSpatialReference(OFFSHORE_SR);
+    inputCutterMultiLineString.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon1.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon2.setSpatialReference(OFFSHORE_SR);
+    expectedOutputPolygon3.setSpatialReference(OFFSHORE_SR);
+
+    var cutPolygons = cut(inputPolygon, inputCutterMultiLineString);
+
+    var cutPolygon1 = (OGCPolygon) cutPolygons.get(0);
+    var cutPolygon2 = (OGCPolygon) cutPolygons.get(1);
+    var cutPolygon3 = (OGCPolygon) cutPolygons.get(2);
+
+    // Note: There are additional points in the results, so use containsAll
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 9));
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
+    assertThat(getRoundedCoordinates(cutPolygon3.exteriorRing(), 9))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon3.exteriorRing(), 9));
+  }
+
+  private List<OGCGeometry> cut(OGCGeometry target, OGCGeometry cutter) throws Exception {
+    var request = HttpRequest.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .uri(URI.create("https://data.nstauthority.co.uk/arcgis/rest/services/Utilities/Geometry/GeometryServer/cut"))
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .POST(
+            HttpRequest.BodyPublishers.ofString(
+                getFormDataAsString(
+                    Map.of(
+                        "sr", String.valueOf(ORACLE_OFFSHORE_SR),
+                        "target", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
+                            .formatted(getGeometryType(target), target.asJson()),
+                        "cutter", cutter.asJson(),
+                        "f", "pjson"
+                    )
+                )
+            )
+        )
+        .build();
+    var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    var parsedResponse = objectMapper.readTree(response.body());
+
+    var geometries = new ArrayList<OGCGeometry>();
+    parsedResponse.get("geometries").forEach(node ->
+        geometries.add(OGCGeometry.fromJson(node.toString())));
+    return geometries;
   }
 
   private String getFormDataAsString(Map<String, String> formData) {
