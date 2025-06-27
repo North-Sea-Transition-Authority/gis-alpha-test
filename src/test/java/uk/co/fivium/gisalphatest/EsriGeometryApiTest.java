@@ -2,10 +2,10 @@ package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_OFFSHORE_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ONSHORE_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_OFFSHORE_SR;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ONSHORE_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ED50_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_BNG_SR;
 
 import com.esri.core.geometry.OperatorDensifyByLength;
 import com.esri.core.geometry.OperatorGeneralize;
@@ -26,8 +26,8 @@ import uk.co.fivium.gisalphatest.util.Coordinate;
 
 class EsriGeometryApiTest {
 
-  private static final SpatialReference OFFSHORE_SR = SpatialReference.create(ORACLE_OFFSHORE_SR);
-  private static final SpatialReference ONSHORE_SR = SpatialReference.create(ORACLE_ONSHORE_SR);
+  private static final SpatialReference ED50_SR = SpatialReference.create(ORACLE_ED50_SR);
+  private static final SpatialReference BNG_SR = SpatialReference.create(ORACLE_BNG_SR);
 
   @Test
   void densify() throws Exception {
@@ -39,13 +39,13 @@ class EsriGeometryApiTest {
     var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputLineStringGeoJson);
     var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
-    inputLineString.setSpatialReference(OFFSHORE_SR);
-    expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
+    inputLineString.setSpatialReference(ED50_SR);
+    expectedOutputLineString.setSpatialReference(ED50_SR);
 
     var densifiedEsriPolyline = (Polyline) OperatorDensifyByLength.local()
         .execute(inputLineString.getEsriGeometry(), roundDecimalPlaces(20.0 / 3600, 11), null);
     var densifiedLineString = (OGCLineString) OGCGeometry
-        .createFromEsriGeometry(densifiedEsriPolyline, OFFSHORE_SR);
+        .createFromEsriGeometry(densifiedEsriPolyline, ED50_SR);
 
     assertThat(getRoundedCoordinates(densifiedLineString, 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
@@ -61,44 +61,44 @@ class EsriGeometryApiTest {
     var inputLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputLineStringGeoJson);
     var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
-    inputLineString.setSpatialReference(OFFSHORE_SR);
-    expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
+    inputLineString.setSpatialReference(ED50_SR);
+    expectedOutputLineString.setSpatialReference(ED50_SR);
 
     var simplifiedEsriPolyline = (Polyline) OperatorGeneralize.local()
         .execute(inputLineString.getEsriGeometry(), 0.01, false, null);
     var simplifiedLineString = (OGCLineString) OGCGeometry
-        .createFromEsriGeometry(simplifiedEsriPolyline, OFFSHORE_SR);
+        .createFromEsriGeometry(simplifiedEsriPolyline, ED50_SR);
 
     assertThat(getRoundedCoordinates(simplifiedLineString, 11))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   @Test
-  void area_offshore() throws Exception {
+  void area_ed50() throws Exception {
     var inputPolygonGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area/input-offshore-polygon.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/area/input-ed50-polygon.geojson"), StandardCharsets.UTF_8);
 
     var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
 
-    inputPolygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon.setSpatialReference(ED50_SR);
 
     // There is an OperatorGeodeticArea, however, it is not implemented
     assertThat(roundDecimalPlaces(inputPolygon.area() / 1000000, 11))
-        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_OFFSHORE_POLYGON_AREA_KM2, 11));
+        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2, 11));
   }
 
   @Test
-  void area_onshore() throws Exception {
+  void area_bng() throws Exception {
     var inputPolygonGeoJson = Resources.toString(
-        Resources.getResource("oracle-test-cases/area/input-onshore-polygon.geojson"), StandardCharsets.UTF_8);
+        Resources.getResource("oracle-test-cases/area/input-bng-polygon.geojson"), StandardCharsets.UTF_8);
 
     var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
 
-    inputPolygon.setSpatialReference(ONSHORE_SR);
+    inputPolygon.setSpatialReference(BNG_SR);
 
     // There is an OperatorGeodeticArea, however, it is not implemented
     assertThat(roundDecimalPlaces(inputPolygon.area() / 1000000, 11))
-        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_ONSHORE_POLYGON_AREA_KM2, 11));
+        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 11));
   }
 
   @Test
@@ -114,9 +114,9 @@ class EsriGeometryApiTest {
     var inputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon2GeoJson);
     var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygonGeoJson);
 
-    inputPolygon1.setSpatialReference(OFFSHORE_SR);
-    inputPolygon2.setSpatialReference(OFFSHORE_SR);
-    expectedOutputPolygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon1.setSpatialReference(ED50_SR);
+    inputPolygon2.setSpatialReference(ED50_SR);
+    expectedOutputPolygon.setSpatialReference(ED50_SR);
 
     var unionPolygon = (OGCPolygon) inputPolygon1.union(inputPolygon2);
 
@@ -137,9 +137,9 @@ class EsriGeometryApiTest {
     var inputLineString2 = (OGCLineString) OGCGeometry.fromGeoJson(inputLineString2GeoJson);
     var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
-    inputLineString1.setSpatialReference(OFFSHORE_SR);
-    inputLineString2.setSpatialReference(OFFSHORE_SR);
-    expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
+    inputLineString1.setSpatialReference(ED50_SR);
+    inputLineString2.setSpatialReference(ED50_SR);
+    expectedOutputLineString.setSpatialReference(ED50_SR);
 
     var unionLineString = (OGCLineString) inputLineString1.union(inputLineString2);
 
@@ -160,16 +160,16 @@ class EsriGeometryApiTest {
     var inputPolygon2 = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygon2GeoJson);
     var expectedOutputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(expectedOutputPolygonGeoJson);
 
-    inputPolygon1.setSpatialReference(OFFSHORE_SR);
-    inputPolygon2.setSpatialReference(OFFSHORE_SR);
-    expectedOutputPolygon.setSpatialReference(OFFSHORE_SR);
+    inputPolygon1.setSpatialReference(ED50_SR);
+    inputPolygon2.setSpatialReference(ED50_SR);
+    expectedOutputPolygon.setSpatialReference(ED50_SR);
 
     var intersectionPolygon = (OGCPolygon) inputPolygon1.intersection(inputPolygon2);
 
     var simplifiedExpectedOutputEsriPolygon = (Polygon) OperatorGeneralize.local()
         .execute(expectedOutputPolygon.getEsriGeometry(), 0.01, false, null);
     var simplifiedExpectedOutputPolygon = (OGCPolygon) OGCGeometry
-        .createFromEsriGeometry(simplifiedExpectedOutputEsriPolygon, OFFSHORE_SR);
+        .createFromEsriGeometry(simplifiedExpectedOutputEsriPolygon, ED50_SR);
 
     assertThat(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
@@ -188,9 +188,9 @@ class EsriGeometryApiTest {
     var inputLineString2 = (OGCLineString) OGCGeometry.fromGeoJson(inputLineString2GeoJson);
     var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
 
-    inputLineString1.setSpatialReference(OFFSHORE_SR);
-    inputLineString2.setSpatialReference(OFFSHORE_SR);
-    expectedOutputLineString.setSpatialReference(OFFSHORE_SR);
+    inputLineString1.setSpatialReference(ED50_SR);
+    inputLineString2.setSpatialReference(ED50_SR);
+    expectedOutputLineString.setSpatialReference(ED50_SR);
 
     var intersectionLineString = (OGCLineString) inputLineString1.intersection(inputLineString2);
 
