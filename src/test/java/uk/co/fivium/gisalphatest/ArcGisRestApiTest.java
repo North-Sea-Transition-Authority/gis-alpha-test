@@ -60,6 +60,13 @@ class ArcGisRestApiTest {
     inputLineString.setSpatialReference(ED50_SR);
     expectedOutputLineString.setSpatialReference(ED50_SR);
 
+    var densifiedLineString = (OGCLineString) densify(inputLineString, false);
+
+    assertThat(getRoundedCoordinates(densifiedLineString, 11))
+        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+  }
+
+  private OGCGeometry densify(OGCGeometry geometry, boolean geodesic) throws Exception {
     var request = HttpRequest.newBuilder()
         .version(HttpClient.Version.HTTP_1_1)
         .uri(URI.create("https://data.nstauthority.co.uk/arcgis/rest/services/Utilities/Geometry/GeometryServer/densify"))
@@ -70,9 +77,9 @@ class ArcGisRestApiTest {
                     Map.of(
                         "sr", String.valueOf(ORACLE_ED50_SR),
                         "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
-                            .formatted(getGeometryType(inputLineString), inputLineString.asJson()),
-                        "maxSegmentLength", String.valueOf(roundDecimalPlaces(20.0 / 3600, 11)),
-                        "geodesic", "false",
+                            .formatted(getGeometryType(geometry), geometry.asJson()),
+                        "maxSegmentLength", String.valueOf(geodesic ? 100 : roundDecimalPlaces(20.0 / 3600, 11)),
+                        "geodesic", Boolean.toString(geodesic),
                         "f", "pjson"
                     )
                 )
@@ -81,10 +88,7 @@ class ArcGisRestApiTest {
         .build();
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     var parsedResponse = objectMapper.readTree(response.body());
-    var densifiedLineString = (OGCLineString) OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
-
-    assertThat(getRoundedCoordinates(densifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    return OGCGeometry.fromJson(parsedResponse.get("geometries").get(0).toString());
   }
 
   @Test
@@ -242,6 +246,40 @@ class ArcGisRestApiTest {
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 9));
   }
 
+  @Test
+  void union_densifiedLineStrings() throws Exception {
+    var inputLineString1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/line-strings/input-line-string-1.geojson"), StandardCharsets.UTF_8);
+    var inputLineString2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/line-strings/input-line-string-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/union/line-strings/output-line-string-ed50.geojson"), StandardCharsets.UTF_8);
+
+    var inputLineString1 = (OGCLineString) OGCGeometry.fromGeoJson(inputLineString1GeoJson);
+    var inputLineString2 = (OGCLineString) OGCGeometry.fromGeoJson(inputLineString2GeoJson);
+    var expectedOutputMultiLineString = (OGCMultiLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
+
+    inputLineString1.setSpatialReference(ED50_SR);
+    inputLineString2.setSpatialReference(ED50_SR);
+    expectedOutputMultiLineString.setSpatialReference(ED50_SR);
+
+    var densifiedInputLineString1 = (OGCLineString) densify(inputLineString1, true);
+    var densifiedInputLineString2 = (OGCLineString) densify(inputLineString2, true);
+
+    var unionLineString = (OGCMultiLineString) union(densifiedInputLineString1, densifiedInputLineString2);
+
+    assertThat(unionLineString.numGeometries()).isEqualTo(expectedOutputMultiLineString.numGeometries());
+
+    for (var i = 0; i < unionLineString.numGeometries(); i++) {
+      var unionSubLineString = (OGCLineString) unionLineString.geometryN(i);
+      var expectedSubLineString = (OGCLineString) expectedOutputMultiLineString.geometryN(unionLineString.numGeometries() - 1 - i);
+      var densifiedExpectedSubLineString = (OGCLineString) densify(expectedSubLineString, true);
+
+      assertThat(getRoundedCoordinates(unionSubLineString, 9))
+          .containsExactlyElementsOf(getRoundedCoordinates(densifiedExpectedSubLineString, 9));
+    }
+  }
+
   private OGCGeometry union(OGCGeometry geometry1, OGCGeometry geometry2) throws Exception {
     var request = HttpRequest.newBuilder()
         .version(HttpClient.Version.HTTP_1_1)
@@ -313,6 +351,31 @@ class ArcGisRestApiTest {
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 5));
   }
 
+  @Test
+  void intersect_densifiedLineStrings() throws Exception {
+    var inputLineString1GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/line-strings/input-line-string-1.geojson"), StandardCharsets.UTF_8);
+    var inputLineString2GeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/line-strings/input-line-string-2.geojson"), StandardCharsets.UTF_8);
+    var expectedOutputLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/intersect/line-strings/output-line-string.geojson"), StandardCharsets.UTF_8);
+
+    var inputLineString1 = (OGCLineString) OGCGeometry.fromGeoJson(inputLineString1GeoJson);
+    var inputLineString2 = (OGCLineString) OGCGeometry.fromGeoJson(inputLineString2GeoJson);
+    var expectedOutputLineString = (OGCLineString) OGCGeometry.fromGeoJson(expectedOutputLineStringGeoJson);
+
+    inputLineString1.setSpatialReference(ED50_SR);
+    inputLineString2.setSpatialReference(ED50_SR);
+    expectedOutputLineString.setSpatialReference(ED50_SR);
+
+    var densifiedInputLineString1 = (OGCLineString) densify(inputLineString1, true);
+    var densifiedInputLineString2 = (OGCLineString) densify(inputLineString2, true);
+
+    var intersectionLineString = (OGCMultiLineString) intersect(densifiedInputLineString1, densifiedInputLineString2);
+
+    assertThat(intersectionLineString.numGeometries()).isEqualTo(0);
+  }
+
   private OGCGeometry intersect(OGCGeometry geometry1, OGCGeometry geometry2) throws Exception {
     var request = HttpRequest.newBuilder()
         .version(HttpClient.Version.HTTP_1_1)
@@ -369,6 +432,34 @@ class ArcGisRestApiTest {
         .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
     assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
         .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 9));
+  }
+
+  @Test
+  void cut_simpleWithGeodesicLine() throws Exception {
+    var inputPolygonGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/simple-with-geodesic-line/input-polygon.geojson"), StandardCharsets.UTF_8);
+    var inputCutterLineStringGeoJson = Resources.toString(
+        Resources.getResource("oracle-test-cases/cut/simple-with-geodesic-line/input-cutter-line-string.geojson"), StandardCharsets.UTF_8);
+
+    var inputPolygon = (OGCPolygon) OGCGeometry.fromGeoJson(inputPolygonGeoJson);
+    var inputCutterLineString = (OGCLineString) OGCGeometry.fromGeoJson(inputCutterLineStringGeoJson);
+
+    inputPolygon.setSpatialReference(ED50_SR);
+    inputCutterLineString.setSpatialReference(ED50_SR);
+
+    var cutPolygons = cut(inputPolygon, inputCutterLineString);
+
+    var cutPolygon1 = (OGCPolygon) cutPolygons.get(0);
+    var cutPolygon2 = (OGCPolygon) cutPolygons.get(1);
+
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+        .contains(new Coordinate(-4.5, 59.008684166));
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+        .contains(new Coordinate(-4.5, 58));
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+        .contains(new Coordinate(-4.5, 59.008684166));
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+        .contains(new Coordinate(-4.5, 58));
   }
 
   @Test
