@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ED50_SR;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_BNG_SR;
 
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.MultiPoint;
@@ -33,11 +31,12 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.co.fivium.gisalphatest.util.Coordinate;
+import uk.co.fivium.gisalphatest.util.TestUtil;
 
 class ArcGisRestApiTest {
 
-  private static final SpatialReference ED50_SR = SpatialReference.create(ORACLE_ED50_SR);
-  private static final SpatialReference BNG_SR = SpatialReference.create(ORACLE_BNG_SR);
+  private static final SpatialReference ED50_SR = SpatialReference.create(TestUtil.ED50_SR);
+  private static final SpatialReference BNG_SR = SpatialReference.create(TestUtil.BNG_SR);
 
   private HttpClient httpClient;
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -75,7 +74,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_ED50_SR),
+                        "sr", String.valueOf(TestUtil.ED50_SR),
                         "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
                             .formatted(getGeometryType(geometry), geometry.asJson()),
                         "maxSegmentLength", String.valueOf(geodesic ? 100 : roundDecimalPlaces(20.0 / 3600, 11)),
@@ -119,7 +118,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_ED50_SR),
+                        "sr", String.valueOf(TestUtil.ED50_SR),
                         "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
                             .formatted(getGeometryType(geometry), geometry.asJson()),
                         "maxDeviation", String.valueOf(0.01),
@@ -151,7 +150,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_ED50_SR),
+                        "sr", String.valueOf(TestUtil.ED50_SR),
                         "polygons", "[%s]".formatted(inputPolygon.asJson()),
                         "calculationType", "geodesic",
                         "f", "pjson"
@@ -184,7 +183,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_BNG_SR),
+                        "sr", String.valueOf(TestUtil.BNG_SR),
                         "polygons", "[%s]".formatted(inputPolygon.asJson()),
                         "calculationType", "planar", // This fails if it's geodesic as it's slightly off, but passes if it's planar?
                         "f", "pjson"
@@ -289,7 +288,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_ED50_SR),
+                        "sr", String.valueOf(TestUtil.ED50_SR),
                         "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s,%s]}"
                             .formatted(getGeometryType(geometry1), geometry1.asJson(), geometry2.asJson()),
                         "f", "pjson"
@@ -385,7 +384,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_ED50_SR),
+                        "sr", String.valueOf(TestUtil.ED50_SR),
                         "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
                             .formatted(getGeometryType(geometry1), geometry1.asJson()),
                         "geometry", "{\"geometryType\":\"%s\",\"geometry\":%s}"
@@ -544,7 +543,7 @@ class ArcGisRestApiTest {
             HttpRequest.BodyPublishers.ofString(
                 getFormDataAsString(
                     Map.of(
-                        "sr", String.valueOf(ORACLE_ED50_SR),
+                        "sr", String.valueOf(TestUtil.ED50_SR),
                         "target", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
                             .formatted(getGeometryType(target), target.asJson()),
                         "cutter", cutter.asJson(),
