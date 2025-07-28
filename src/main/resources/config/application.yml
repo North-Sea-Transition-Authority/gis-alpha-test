@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/gis_alpha_test
+    username: gis_alpha_test_app
+    password: dev1
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate.default_schema: gis_alpha_test
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    schemas: ${spring.jpa.properties.hibernate.default_schema}

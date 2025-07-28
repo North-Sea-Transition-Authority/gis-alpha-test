@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ED50_SR;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_BNG_SR;
 
 import com.esri.core.geometry.OperatorDensifyByLength;
 import com.esri.core.geometry.OperatorGeneralize;
@@ -23,11 +21,12 @@ import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import uk.co.fivium.gisalphatest.util.Coordinate;
+import uk.co.fivium.gisalphatest.util.TestUtil;
 
 class EsriGeometryApiTest {
 
-  private static final SpatialReference ED50_SR = SpatialReference.create(ORACLE_ED50_SR);
-  private static final SpatialReference BNG_SR = SpatialReference.create(ORACLE_BNG_SR);
+  private static final SpatialReference ED50_SR = SpatialReference.create(TestUtil.ED50_SR);
+  private static final SpatialReference BNG_SR = SpatialReference.create(TestUtil.BNG_SR);
 
   @Test
   void densify() throws Exception {

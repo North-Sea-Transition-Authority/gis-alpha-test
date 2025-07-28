@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: dev1
+      POSTGRES_DB: gis_alpha_test
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./create-db-user.sh:/create-db-user.sh
+    command: bash -c "
+      cp /create-db-user.sh /docker-entrypoint-initdb.d &&
+      dos2unix /docker-entrypoint-initdb.d/create-db-user.sh &&
+      chmod +x /docker-entrypoint-initdb.d/create-db-user.sh &&
+      docker-entrypoint.sh postgres"
+
+volumes:
+  postgres-data:

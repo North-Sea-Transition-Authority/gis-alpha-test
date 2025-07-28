@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_ED50_SR;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_BNG_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ED50_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.BNG_SR;
 
 import com.google.common.io.Resources;
 import java.nio.charset.StandardCharsets;
@@ -26,9 +26,9 @@ import uk.co.fivium.gisalphatest.util.Coordinate;
 class JtsTest {
 
   private static final GeoJsonReader ED50_GEO_JSON_READER =
-      new GeoJsonReader(new GeometryFactory(new PrecisionModel(), ORACLE_ED50_SR));
+      new GeoJsonReader(new GeometryFactory(new PrecisionModel(), ED50_SR));
   private static final GeoJsonReader BNG_GEO_JSON_READER =
-      new GeoJsonReader(new GeometryFactory(new PrecisionModel(), ORACLE_BNG_SR));
+      new GeoJsonReader(new GeometryFactory(new PrecisionModel(), BNG_SR));
 
   @Test
   void densify() throws Exception {
