@@ -5,7 +5,7 @@ import java.util.HashMap;
 import org.springframework.stereotype.Service;
 
 @Service
-class FeatureService {
+public class FeatureService {
 
   private final FeatureRepository featureRepository;
   private final PolygonRepository polygonRepository;
@@ -24,7 +24,7 @@ class FeatureService {
     this.pointRepository = pointRepository;
   }
 
-  Feature createFeature(FeatureType featureType, Integer srs) {
+  public Feature createFeature(FeatureType featureType, Integer srs) {
     var feature = new Feature();
     feature.setType(featureType);
     feature.setSrs(srs);
@@ -32,7 +32,7 @@ class FeatureService {
     return feature;
   }
 
-  Polygon createPolygon(Feature feature) {
+  public Polygon createPolygon(Feature feature) {
     var polygon = new Polygon();
     polygon.setFeature(feature);
     polygon.setAttributes(new HashMap<>());
@@ -40,7 +40,7 @@ class FeatureService {
     return polygon;
   }
 
-  Line createLine(Feature feature, @Nullable Polygon polygon, LineNavigationType navigationType, boolean exteriorRing) {
+  public Line createLine(Feature feature, @Nullable Polygon polygon, LineNavigationType navigationType, boolean exteriorRing) {
     var line = new Line();
     line.setFeature(feature);
     line.setPolygon(polygon);
@@ -51,7 +51,7 @@ class FeatureService {
     return line;
   }
 
-  Point createPoint(Feature feature, @Nullable Line line, double x, double z) {
+  public Point createPoint(Feature feature, @Nullable Line line, double x, double z) {
     var point = new Point();
     point.setFeature(feature);
     point.setLine(line);

@@ -10,7 +10,7 @@ import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(name = "features")
-class Feature {
+public class Feature {
 
   @Id
   @UuidGenerator
@@ -21,23 +21,23 @@ class Feature {
 
   private Integer srs;
 
-  UUID getId() {
+  public UUID getId() {
     return id;
   }
 
-  FeatureType getType() {
+  public FeatureType getType() {
     return type;
   }
 
-  void setType(FeatureType type) {
+  public void setType(FeatureType type) {
     this.type = type;
   }
 
-  Integer getSrs() {
+  public Integer getSrs() {
     return srs;
   }
 
-  void setSrs(Integer srs) {
+  public void setSrs(Integer srs) {
     this.srs = srs;
   }
 }

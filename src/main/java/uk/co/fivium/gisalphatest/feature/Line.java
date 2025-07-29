@@ -16,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "lines")
-class Line {
+public class Line {
 
   @Id
   @UuidGenerator
@@ -39,47 +39,47 @@ class Line {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
-  UUID getId() {
+  public UUID getId() {
     return id;
   }
 
-  Feature getFeature() {
+  public Feature getFeature() {
     return feature;
   }
 
-  void setFeature(Feature feature) {
+  public void setFeature(Feature feature) {
     this.feature = feature;
   }
 
-  Polygon getPolygon() {
+  public Polygon getPolygon() {
     return polygon;
   }
 
-  void setPolygon(Polygon polygon) {
+  public void setPolygon(Polygon polygon) {
     this.polygon = polygon;
   }
 
-  LineNavigationType getNavigationType() {
+  public LineNavigationType getNavigationType() {
     return navigationType;
   }
 
-  void setNavigationType(LineNavigationType navigationType) {
+  public void setNavigationType(LineNavigationType navigationType) {
     this.navigationType = navigationType;
   }
 
-  boolean isExteriorRing() {
+  public boolean isExteriorRing() {
     return exteriorRing;
   }
 
-  void setExteriorRing(boolean external) {
+  public void setExteriorRing(boolean external) {
     this.exteriorRing = external;
   }
 
-  Map<String, Object> getAttributes() {
+  public Map<String, Object> getAttributes() {
     return attributes;
   }
 
-  void setAttributes(Map<String, Object> attributes) {
+  public void setAttributes(Map<String, Object> attributes) {
     this.attributes = attributes;
   }
 }

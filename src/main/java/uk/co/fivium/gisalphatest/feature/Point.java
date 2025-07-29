@@ -10,7 +10,7 @@ import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(name = "points")
-class Point {
+public class Point {
 
   @Id
   @UuidGenerator
@@ -28,39 +28,39 @@ class Point {
 
   private double z;
 
-  UUID getId() {
+  public UUID getId() {
     return id;
   }
 
-  Feature getFeature() {
+  public Feature getFeature() {
     return feature;
   }
 
-  void setFeature(Feature feature) {
+  public void setFeature(Feature feature) {
     this.feature = feature;
   }
 
-  Line getLine() {
+  public Line getLine() {
     return line;
   }
 
-  void setLine(Line line) {
+  public void setLine(Line line) {
     this.line = line;
   }
 
-  double getX() {
+  public double getX() {
     return x;
   }
 
-  void setX(double x) {
+  public void setX(double x) {
     this.x = x;
   }
 
-  double getZ() {
+  public double getZ() {
     return z;
   }
 
-  void setZ(double y) {
+  public void setZ(double y) {
     this.z = y;
   }
 }

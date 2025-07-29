@@ -1,6 +1,6 @@
 package uk.co.fivium.gisalphatest.feature;
 
-enum FeatureType {
+public enum FeatureType {
 
   POLYGON,
   POLYGON_COLLECTION,

@@ -1,6 +1,6 @@
 package uk.co.fivium.gisalphatest.feature;
 
-enum LineNavigationType {
+public enum LineNavigationType {
 
   LOXODROME,
   GEODESIC

@@ -14,7 +14,7 @@ import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "polygons")
-class Polygon {
+public class Polygon {
 
   @Id
   @UuidGenerator
@@ -28,23 +28,23 @@ class Polygon {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
-  UUID getId() {
+  public UUID getId() {
     return id;
   }
 
-  Feature getFeature() {
+  public Feature getFeature() {
     return feature;
   }
 
-  void setFeature(Feature feature) {
+  public void setFeature(Feature feature) {
     this.feature = feature;
   }
 
-  Map<String, Object> getAttributes() {
+  public Map<String, Object> getAttributes() {
     return attributes;
   }
 
-  void setAttributes(Map<String, Object> attributes) {
+  public void setAttributes(Map<String, Object> attributes) {
     this.attributes = attributes;
   }
 }
