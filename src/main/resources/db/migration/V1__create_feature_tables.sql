@@ -20,7 +20,7 @@ CREATE TABLE lines (
 , feature_id UUID NOT NULL
 , polygon_id UUID
 , navigation_type TEXT NOT NULL
-, exterior_ring BOOLEAN NOT NULL
+, ring_number NUMERIC NOT NULL
 , attributes JSONB NOT NULL
 , CONSTRAINT lines_pk PRIMARY KEY (id)
 , CONSTRAINT lines_feature_id_fk FOREIGN KEY (feature_id) REFERENCES features (id)

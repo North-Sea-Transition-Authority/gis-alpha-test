@@ -40,12 +40,12 @@ public class FeatureService {
     return polygon;
   }
 
-  public Line createLine(Feature feature, @Nullable Polygon polygon, LineNavigationType navigationType, boolean exteriorRing) {
+  public Line createLine(Feature feature, @Nullable Polygon polygon, LineNavigationType navigationType, Integer ringNumber) {
     var line = new Line();
     line.setFeature(feature);
     line.setPolygon(polygon);
     line.setNavigationType(navigationType);
-    line.setExteriorRing(exteriorRing);
+    line.setRingNumber(ringNumber);
     line.setAttributes(new HashMap<>());
     lineRepository.save(line);
     return line;

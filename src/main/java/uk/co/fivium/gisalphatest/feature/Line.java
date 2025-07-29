@@ -33,7 +33,7 @@ public class Line {
   @Enumerated(EnumType.STRING)
   private LineNavigationType navigationType;
 
-  private boolean exteriorRing;
+  private Integer ringNumber;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
@@ -67,12 +67,16 @@ public class Line {
     this.navigationType = navigationType;
   }
 
-  public boolean isExteriorRing() {
-    return exteriorRing;
+  public Integer getRingNumber() {
+    return ringNumber;
   }
 
-  public void setExteriorRing(boolean external) {
-    this.exteriorRing = external;
+  public void setRingNumber(Integer ringNumber) {
+    this.ringNumber = ringNumber;
+  }
+
+  public boolean isExteriorRing() {
+    return ringNumber == 0;
   }
 
   public Map<String, Object> getAttributes() {
