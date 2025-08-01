@@ -2,8 +2,9 @@ package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.rotateCoordinateRing;
 
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.MultiPoint;
@@ -24,8 +25,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -218,7 +218,7 @@ class ArcGisRestApiTest {
 
     var unionPolygon = (OGCPolygon) union(inputPolygon1, inputPolygon2);
 
-    assertThat(getRoundedCoordinates(unionPolygon.exteriorRing(), 9))
+    assertThat(rotateCoordinateRing(getRoundedCoordinates(unionPolygon.exteriorRing(), 9), 1))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.exteriorRing(), 9));
   }
 
@@ -274,7 +274,13 @@ class ArcGisRestApiTest {
       var expectedSubLineString = (OGCLineString) expectedOutputMultiLineString.geometryN(unionLineString.numGeometries() - 1 - i);
       var densifiedExpectedSubLineString = (OGCLineString) densify(expectedSubLineString, true);
 
-      assertThat(getRoundedCoordinates(unionSubLineString, 9))
+      var unionSubLineStringRoundedCoordinates = getRoundedCoordinates(unionSubLineString, 9);
+
+      if (i == 1) {
+        Collections.reverse(unionSubLineStringRoundedCoordinates);
+      }
+
+      assertThat(unionSubLineStringRoundedCoordinates)
           .containsExactlyElementsOf(getRoundedCoordinates(densifiedExpectedSubLineString, 9));
     }
   }
@@ -323,7 +329,7 @@ class ArcGisRestApiTest {
 
     var simplifiedExpectedOutputPolygon = (OGCPolygon) simplify(expectedOutputPolygon);
 
-    assertThat(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5))
+    assertThat(rotateCoordinateRing(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5), 2))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
   }
 
@@ -576,13 +582,11 @@ class ArcGisRestApiTest {
   }
 
   private List<Coordinate> getRoundedCoordinates(OGCLineString lineString, int places) {
-    var coordinatesSet = new HashSet<Coordinate>();
+    var coordinates = new ArrayList<Coordinate>();
     for (var i = 0; i < lineString.numPoints(); i++) {
       var point = lineString.pointN(i);
-      coordinatesSet.add(new Coordinate(roundDecimalPlaces(point.X(), places), roundDecimalPlaces(point.Y(), places)));
+      coordinates.add(new Coordinate(roundDecimalPlaces(point.X(), places), roundDecimalPlaces(point.Y(), places)));
     }
-    var coordinates = new ArrayList<>(coordinatesSet);
-    coordinates.sort(Comparator.comparing(Coordinate::x).thenComparing(Coordinate::z));
     return coordinates;
   }
 

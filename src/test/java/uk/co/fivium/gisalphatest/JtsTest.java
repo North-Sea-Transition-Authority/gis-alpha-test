@@ -2,16 +2,16 @@ package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ED50_SR;
 import static uk.co.fivium.gisalphatest.util.TestUtil.BNG_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ED50_SR;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.rotateCoordinateRing;
 
+import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.densify.Densifier;
@@ -101,7 +101,7 @@ class JtsTest {
 
     var unionPolygon = (Polygon) inputPolygon1.union(inputPolygon2);
 
-    assertThat(getRoundedCoordinates(unionPolygon.getExteriorRing(), 11))
+    assertThat(Lists.reverse(rotateCoordinateRing(getRoundedCoordinates(unionPolygon.getExteriorRing(), 11), 41)))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.getExteriorRing(), 11));
   }
 
@@ -141,7 +141,7 @@ class JtsTest {
 
     var simplifiedExpectedOutputPolygon = (Polygon) DouglasPeuckerSimplifier.simplify(expectedOutputPolygon, 0.01);
 
-    assertThat(getRoundedCoordinates(intersectionPolygon.getExteriorRing(), 5))
+    assertThat(Lists.reverse(getRoundedCoordinates(intersectionPolygon.getExteriorRing(), 5)))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.getExteriorRing(), 5));
   }
 
@@ -165,13 +165,11 @@ class JtsTest {
   }
 
   private List<Coordinate> getRoundedCoordinates(LineString lineString, int places) {
-    var coordinatesSet = new HashSet<Coordinate>();
+    var coordinates = new ArrayList<Coordinate>();
     for (var i = 0; i < lineString.getNumPoints(); i++) {
       var point = lineString.getPointN(i);
-      coordinatesSet.add(new Coordinate(roundDecimalPlaces(point.getX(), places), roundDecimalPlaces(point.getY(), places)));
+      coordinates.add(new Coordinate(roundDecimalPlaces(point.getX(), places), roundDecimalPlaces(point.getY(), places)));
     }
-    var coordinates = new ArrayList<>(coordinatesSet);
-    coordinates.sort(Comparator.comparing(Coordinate::x).thenComparing(Coordinate::z));
     return coordinates;
   }
 }

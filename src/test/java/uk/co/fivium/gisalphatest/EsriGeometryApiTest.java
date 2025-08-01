@@ -2,8 +2,9 @@ package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
-import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
+import static uk.co.fivium.gisalphatest.util.TestUtil.rotateCoordinateRing;
 
 import com.esri.core.geometry.OperatorDensifyByLength;
 import com.esri.core.geometry.OperatorGeneralize;
@@ -16,8 +17,6 @@ import com.esri.core.geometry.ogc.OGCPolygon;
 import com.google.common.io.Resources;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import uk.co.fivium.gisalphatest.util.Coordinate;
@@ -119,7 +118,7 @@ class EsriGeometryApiTest {
 
     var unionPolygon = (OGCPolygon) inputPolygon1.union(inputPolygon2);
 
-    assertThat(getRoundedCoordinates(unionPolygon.exteriorRing(), 11))
+    assertThat(rotateCoordinateRing(getRoundedCoordinates(unionPolygon.exteriorRing(), 11), 485))
         .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.exteriorRing(), 11));
   }
 
@@ -170,7 +169,7 @@ class EsriGeometryApiTest {
     var simplifiedExpectedOutputPolygon = (OGCPolygon) OGCGeometry
         .createFromEsriGeometry(simplifiedExpectedOutputEsriPolygon, ED50_SR);
 
-    assertThat(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5))
+    assertThat(rotateCoordinateRing(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5), 2))
         .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
   }
 
@@ -198,13 +197,11 @@ class EsriGeometryApiTest {
   }
 
   private List<Coordinate> getRoundedCoordinates(OGCLineString lineString, int places) {
-    var coordinatesSet = new HashSet<Coordinate>();
+    var coordinates = new ArrayList<Coordinate>();
     for (var i = 0; i < lineString.numPoints(); i++) {
       var point = lineString.pointN(i);
-      coordinatesSet.add(new Coordinate(roundDecimalPlaces(point.X(), places), roundDecimalPlaces(point.Y(), places)));
+      coordinates.add(new Coordinate(roundDecimalPlaces(point.X(), places), roundDecimalPlaces(point.Y(), places)));
     }
-    var coordinates = new ArrayList<>(coordinatesSet);
-    coordinates.sort(Comparator.comparing(Coordinate::x).thenComparing(Coordinate::z));
     return coordinates;
   }
 }
