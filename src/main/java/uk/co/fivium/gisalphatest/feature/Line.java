@@ -35,6 +35,8 @@ public class Line {
 
   private Integer ringNumber;
 
+  private Integer ringConnectionOrder;
+
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
@@ -73,6 +75,14 @@ public class Line {
 
   public void setRingNumber(Integer ringNumber) {
     this.ringNumber = ringNumber;
+  }
+
+  public Integer getRingConnectionOrder() {
+    return ringConnectionOrder;
+  }
+
+  public void setRingConnectionOrder(Integer ringConnectionOrder) {
+    this.ringConnectionOrder = ringConnectionOrder;
   }
 
   public boolean isExteriorRing() {

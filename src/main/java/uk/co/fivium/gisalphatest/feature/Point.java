@@ -24,6 +24,8 @@ public class Point {
   @ManyToOne
   private Line line;
 
+  private Integer lineConnectionOrder;
+
   private double x;
 
   private double z;
@@ -48,6 +50,14 @@ public class Point {
     this.line = line;
   }
 
+  public int getLineConnectionOrder() {
+    return lineConnectionOrder;
+  }
+
+  public void setLineConnectionOrder(Integer lineConnectionOrder) {
+    this.lineConnectionOrder = lineConnectionOrder;
+  }
+
   public double getX() {
     return x;
   }
@@ -60,7 +70,7 @@ public class Point {
     return z;
   }
 
-  public void setZ(double y) {
-    this.z = y;
+  public void setZ(double z) {
+    this.z = z;
   }
 }

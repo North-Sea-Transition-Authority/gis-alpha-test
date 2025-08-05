@@ -20,7 +20,8 @@ CREATE TABLE lines (
 , feature_id UUID NOT NULL
 , polygon_id UUID
 , navigation_type TEXT NOT NULL
-, ring_number NUMERIC NOT NULL
+, ring_number INTEGER NOT NULL
+, ring_connection_order INTEGER NOT NULL
 , attributes JSONB NOT NULL
 , CONSTRAINT lines_pk PRIMARY KEY (id)
 , CONSTRAINT lines_feature_id_fk FOREIGN KEY (feature_id) REFERENCES features (id)
@@ -34,6 +35,7 @@ CREATE TABLE points (
   id UUID NOT NULL
 , feature_id UUID NOT NULL
 , line_id UUID
+, line_connection_order INTEGER NOT NULL
 , x NUMERIC NOT NULL
 , z NUMERIC NOT NULL
 , CONSTRAINT points_pk PRIMARY KEY (id)

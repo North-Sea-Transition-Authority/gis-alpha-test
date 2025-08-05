@@ -40,21 +40,35 @@ public class FeatureService {
     return polygon;
   }
 
-  public Line createLine(Feature feature, @Nullable Polygon polygon, LineNavigationType navigationType, Integer ringNumber) {
+  public Line createLine(
+      Feature feature,
+      @Nullable Polygon polygon,
+      LineNavigationType navigationType,
+      int ringNumber,
+      int ringConnectionOrder
+  ) {
     var line = new Line();
     line.setFeature(feature);
     line.setPolygon(polygon);
     line.setNavigationType(navigationType);
     line.setRingNumber(ringNumber);
+    line.setRingConnectionOrder(ringConnectionOrder);
     line.setAttributes(new HashMap<>());
     lineRepository.save(line);
     return line;
   }
 
-  public Point createPoint(Feature feature, @Nullable Line line, double x, double z) {
+  public Point createPoint(
+      Feature feature,
+      @Nullable Line line,
+      int lineConnectionOrder,
+      double x,
+      double z
+  ) {
     var point = new Point();
     point.setFeature(feature);
     point.setLine(line);
+    point.setLineConnectionOrder(lineConnectionOrder);
     point.setX(x);
     point.setZ(z);
     pointRepository.save(point);

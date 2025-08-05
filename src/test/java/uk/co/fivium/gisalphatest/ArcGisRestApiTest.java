@@ -31,12 +31,18 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.co.fivium.gisalphatest.util.Coordinate;
+import uk.co.fivium.gisalphatest.util.MathUtil;
 import uk.co.fivium.gisalphatest.util.TestUtil;
 
 class ArcGisRestApiTest {
 
   private static final SpatialReference ED50_SR = SpatialReference.create(TestUtil.ED50_SR);
   private static final SpatialReference BNG_SR = SpatialReference.create(TestUtil.BNG_SR);
+
+  private static final int GEODESIC_DENSIFY_MAX_SEGMENT_LENGTH_METERS = 100;
+  // When densifying with geodesic set to false, the maxSegmentLength unit is derived from the SR.
+  // For ED50, the unit is degrees (see https://epsg.io/4230).
+  private static final double PLANAR_DENSIFY_MAX_SEGMENT_LENGTH_DEGREES = MathUtil.roundDecimalPlaces(20.0 / 3600, 11);
 
   private HttpClient httpClient;
   private final ObjectMapper objectMapper = new ObjectMapper();
@@ -77,7 +83,7 @@ class ArcGisRestApiTest {
                         "sr", String.valueOf(TestUtil.ED50_SR),
                         "geometries", "{\"geometryType\":\"%s\",\"geometries\":[%s]}"
                             .formatted(getGeometryType(geometry), geometry.asJson()),
-                        "maxSegmentLength", String.valueOf(geodesic ? 100 : roundDecimalPlaces(20.0 / 3600, 11)),
+                        "maxSegmentLength", String.valueOf(geodesic ? GEODESIC_DENSIFY_MAX_SEGMENT_LENGTH_METERS : PLANAR_DENSIFY_MAX_SEGMENT_LENGTH_DEGREES),
                         "geodesic", Boolean.toString(geodesic),
                         "f", "pjson"
                     )
