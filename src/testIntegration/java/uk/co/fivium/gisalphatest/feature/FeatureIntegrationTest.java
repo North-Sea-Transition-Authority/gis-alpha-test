@@ -1,7 +1,11 @@
 package uk.co.fivium.gisalphatest.feature;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getRoundedCoordinates;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.rotatePolygon;
 
+import com.esri.core.geometry.OperatorCut;
+import com.esri.core.geometry.Polyline;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCLineString;
@@ -100,8 +104,20 @@ class FeatureIntegrationTest {
 
     var ogcPolygon = featureEsriConversionService.toOgc(polygon);
 
-    var cutPolygons = arcGisService.cutPolygon(ogcPolygon, shape13CutterLine1);
-    assertThat(cutPolygons.size()).isEqualTo(2);
+    var firstCutPolygonCursor = OperatorCut.local().execute(
+        true,
+        ogcPolygon.getEsriGeometry(),
+        (Polyline) shape13CutterLine1.getEsriGeometry(),
+        null,
+        null
+    );
+
+    var cutPolygon1 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(firstCutPolygonCursor.next(), null);
+
+    var expectedOutputPolygons = getCutTestShape12WithShape13CutLinesExpectOutputPolygons();
+
+    assertThat(getRoundedCoordinates(rotatePolygon(cutPolygon1, -1).exteriorRing(), 3))
+        .isEqualTo(getRoundedCoordinates(expectedOutputPolygons.get(0).exteriorRing(), 3));
   }
 
   private List<OGCPolygon> getCutTestShape12WithShape13CutLinesExpectOutputPolygons() throws Exception {
@@ -112,14 +128,12 @@ class FeatureIntegrationTest {
     var polygon1LineString1GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.78809527777778, 56.0916666666667], [2.76666666666667, 56.1666666666667] ] }";
     var polygon1LineString2GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.76666666666667, 56.1666666666667], [2.68333333333333, 56.1666666666667] ] }";
     var polygon1LineString3GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.68333333333333, 56.1666666666667], [2.62969944444444, 56.0916666666667] ] }";
-    var polygon1LineString4GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.62969944444444, 56.0916666666667], [2.71666666666667, 56.0916666666667] ] }";
-    var polygon1LineString5GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.71666666666667, 56.0916666666667], [2.78809527777778, 56.0916666666667] ] }";
+    var polygon1LineString4GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.62969944444444, 56.0916666666667], [2.78809527777778, 56.0916666666667] ] }";
 
     createLineFromGeoJson(polygon1, LineNavigationType.LOXODROME, 0, 0, polygon1LineString1GeoJson);
     createLineFromGeoJson(polygon1, LineNavigationType.LOXODROME, 0, 1, polygon1LineString2GeoJson);
     createLineFromGeoJson(polygon1, LineNavigationType.GEODESIC, 0, 2, polygon1LineString3GeoJson);
     createLineFromGeoJson(polygon1, LineNavigationType.LOXODROME, 0, 3, polygon1LineString4GeoJson);
-    createLineFromGeoJson(polygon1, LineNavigationType.LOXODROME, 0, 4, polygon1LineString5GeoJson);
 
     return List.of(featureEsriConversionService.toOgc(polygon1));
   }

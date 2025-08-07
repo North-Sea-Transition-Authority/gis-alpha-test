@@ -1,5 +1,7 @@
 package uk.co.fivium.gisalphatest.feature;
 
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiUtil.appendRingToPolygon;
+
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import com.esri.core.geometry.ogc.OGCPolygon;
@@ -7,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisalphatest.util.EsriGeometryApiUtil;
 
 @Service
 public class FeatureEsriConversionService {
@@ -40,36 +43,21 @@ public class FeatureEsriConversionService {
           .sorted(Comparator.comparing(Line::getRingConnectionOrder))
           .toList();
 
-      var ringPoints = new ArrayList<Point>();
+      var ringEsriPoints = new ArrayList<com.esri.core.geometry.Point>();
 
       for (var line : sortedLinesInRing) {
         var sortedLinePoints = pointsByLineId.get(line.getId())
             .stream()
             .sorted(Comparator.comparing(Point::getLineConnectionOrder))
+            .map(EsriGeometryApiUtil::toEsri)
             .toList();
 
-        ringPoints.addAll(sortedLinePoints);
+        ringEsriPoints.addAll(sortedLinePoints);
       }
 
-      esriPolygon.startPath(toEsri(ringPoints.getFirst()));
-
-      Point previousPoint = null;
-
-      // Never add the end point, the line will be auto closed.
-      // TODO: validate the end point is the same as first?
-      for (var point : ringPoints.subList(1, ringPoints.size() - 1).reversed()) {
-        if (previousPoint != null && previousPoint.getX() == point.getX() && previousPoint.getZ() == point.getZ()) {
-          continue;
-        }
-        esriPolygon.lineTo(toEsri(point));
-        previousPoint = point;
-      }
+      appendRingToPolygon(esriPolygon, ringEsriPoints);
     }
 
     return (OGCPolygon) OGCGeometry.createFromEsriGeometry(esriPolygon, SpatialReference.create(polygon.getFeature().getSrs()));
-  }
-
-  private com.esri.core.geometry.Point toEsri(Point point) {
-    return new com.esri.core.geometry.Point(point.getX(), point.getZ());
   }
 }

@@ -1,6 +1,7 @@
 package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getRoundedCoordinates;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
@@ -585,15 +586,6 @@ class ArcGisRestApiTest {
       formBodyBuilder.append(URLEncoder.encode(singleEntry.getValue(), StandardCharsets.UTF_8));
     }
     return formBodyBuilder.toString();
-  }
-
-  private List<Coordinate> getRoundedCoordinates(OGCLineString lineString, int places) {
-    var coordinates = new ArrayList<Coordinate>();
-    for (var i = 0; i < lineString.numPoints(); i++) {
-      var point = lineString.pointN(i);
-      coordinates.add(new Coordinate(roundDecimalPlaces(point.X(), places), roundDecimalPlaces(point.Y(), places)));
-    }
-    return coordinates;
   }
 
   private String getGeometryType(OGCGeometry geometry) {
