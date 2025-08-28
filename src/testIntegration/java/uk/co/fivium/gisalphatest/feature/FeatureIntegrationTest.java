@@ -101,6 +101,7 @@ class FeatureIntegrationTest {
     createLineFromGeoJson(polygon, LineNavigationType.LOXODROME, 0, 3, shape12LineString4GeoJson);
 
     var shape13CutterLine1 = (OGCLineString) OGCGeometry.fromGeoJson("{ \"type\": \"LineString\", \"coordinates\": [ [2.625, 56.0916666666667], [2.8, 56.0916666666667] ] }");
+    var shape13CutterLine2 = (OGCLineString) OGCGeometry.fromGeoJson("{ \"type\": \"LineString\", \"coordinates\": [ [2.71666666666667, 56.1], [2.71666666666667, 55.9916666666667] ] }");
 
     var ogcPolygon = featureEsriConversionService.toOgc(polygon);
 
@@ -114,10 +115,27 @@ class FeatureIntegrationTest {
 
     var cutPolygon1 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(firstCutPolygonCursor.next(), null);
 
+    var secondCutPolygonCursor = OperatorCut.local().execute(
+        true,
+        firstCutPolygonCursor.next(),
+        (Polyline) shape13CutterLine2.getEsriGeometry(),
+        null,
+        null
+    );
+
+    var cutPolygon2 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(secondCutPolygonCursor.next(), null);
+    var cutPolygon3 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(secondCutPolygonCursor.next(), null);
+
     var expectedOutputPolygons = getCutTestShape12WithShape13CutLinesExpectOutputPolygons();
 
     assertThat(getRoundedCoordinates(rotatePolygon(cutPolygon1, -1).exteriorRing(), 3))
         .isEqualTo(getRoundedCoordinates(expectedOutputPolygons.get(0).exteriorRing(), 3));
+
+    assertThat(getRoundedCoordinates(rotatePolygon(cutPolygon2, -1).exteriorRing(), 3))
+        .isEqualTo(getRoundedCoordinates(expectedOutputPolygons.get(1).exteriorRing(), 3));
+
+    assertThat(getRoundedCoordinates(rotatePolygon(cutPolygon3, -1).exteriorRing(), 3))
+        .isEqualTo(getRoundedCoordinates(expectedOutputPolygons.get(2).exteriorRing(), 3));
   }
 
   private List<OGCPolygon> getCutTestShape12WithShape13CutLinesExpectOutputPolygons() throws Exception {
@@ -135,7 +153,35 @@ class FeatureIntegrationTest {
     createLineFromGeoJson(polygon1, LineNavigationType.GEODESIC, 0, 2, polygon1LineString3GeoJson);
     createLineFromGeoJson(polygon1, LineNavigationType.LOXODROME, 0, 3, polygon1LineString4GeoJson);
 
-    return List.of(featureEsriConversionService.toOgc(polygon1));
+    var polygon2 = featureService.createPolygon(feature);
+
+    var polygon2LineString1GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.78809527777778, 56.0916666666667], [2.71666666666667, 56.0916666666667] ] }";
+    var polygon2LineString2GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.71666666666667, 56.0916666666667], [2.71666666666667, 56.0500169444444] ] }";
+    var polygon2LineString3GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.71666666666667, 56.0500169444444], [2.8, 56.05] ] }";
+    var polygon2LineString4GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.8, 56.05], [2.78809527777778, 56.0916666666667] ] }";
+
+    createLineFromGeoJson(polygon2, LineNavigationType.LOXODROME, 0, 0, polygon2LineString1GeoJson);
+    createLineFromGeoJson(polygon2, LineNavigationType.LOXODROME, 0, 1, polygon2LineString2GeoJson);
+    createLineFromGeoJson(polygon2, LineNavigationType.GEODESIC, 0, 2, polygon2LineString3GeoJson);
+    createLineFromGeoJson(polygon2, LineNavigationType.LOXODROME, 0, 3, polygon2LineString4GeoJson);
+
+    var polygon3 = featureService.createPolygon(feature);
+
+    var polygon3LineString1GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.6, 56.05], [2.66666666666667, 56.05], [2.71666666666667, 56.0500169444444] ] }";
+    var polygon3LineString2GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.71666666666667, 56.0500169444444], [2.71666666666667, 56.0916666666667] ] }";
+    var polygon3LineString3GeoJson = "{ \"type\": \"LineString\", \"coordinates\": [ [2.71666666666667, 56.0916666666667], [2.62969944444444, 56.0916666666667] ] }";
+    var polygon3LineString4GeoJson = " { \"type\": \"LineString\", \"coordinates\": [ [2.62969944444444, 56.0916666666667], [2.6, 56.05] ] }";
+
+    createLineFromGeoJson(polygon3, LineNavigationType.GEODESIC, 0, 0, polygon3LineString1GeoJson);
+    createLineFromGeoJson(polygon3, LineNavigationType.LOXODROME, 0, 1, polygon3LineString2GeoJson);
+    createLineFromGeoJson(polygon3, LineNavigationType.LOXODROME, 0, 2, polygon3LineString3GeoJson);
+    createLineFromGeoJson(polygon3, LineNavigationType.GEODESIC, 0, 3, polygon3LineString4GeoJson);
+
+    return List.of(
+        featureEsriConversionService.toOgc(polygon1),
+        featureEsriConversionService.toOgc(polygon2),
+        featureEsriConversionService.toOgc(polygon3)
+    );
   }
 
   private void createLineFromGeoJson(
