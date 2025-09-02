@@ -5,6 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 
@@ -26,9 +27,9 @@ public class Point {
 
   private Integer lineConnectionOrder;
 
-  private double x;
+  private BigDecimal x;
 
-  private double z;
+  private BigDecimal z;
 
   public UUID getId() {
     return id;
@@ -58,19 +59,19 @@ public class Point {
     this.lineConnectionOrder = lineConnectionOrder;
   }
 
-  public double getX() {
+  public BigDecimal getX() {
     return x;
   }
 
-  public void setX(double x) {
+  public void setX(BigDecimal x) {
     this.x = x;
   }
 
-  public double getZ() {
+  public BigDecimal getZ() {
     return z;
   }
 
-  public void setZ(double z) {
+  public void setZ(BigDecimal z) {
     this.z = z;
   }
 }

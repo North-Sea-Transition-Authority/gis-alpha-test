@@ -1,6 +1,7 @@
 package uk.co.fivium.gisalphatest.feature;
 
 import jakarta.annotation.Nullable;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import org.springframework.stereotype.Service;
 
@@ -69,8 +70,8 @@ public class FeatureService {
     point.setFeature(feature);
     point.setLine(line);
     point.setLineConnectionOrder(lineConnectionOrder);
-    point.setX(x);
-    point.setZ(z);
+    point.setX(BigDecimal.valueOf(x));
+    point.setZ(BigDecimal.valueOf(z));
     pointRepository.save(point);
     return point;
   }

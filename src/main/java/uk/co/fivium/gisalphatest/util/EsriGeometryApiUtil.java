@@ -22,6 +22,6 @@ public class EsriGeometryApiUtil {
   }
 
   public static com.esri.core.geometry.Point toEsri(Point point) {
-    return new com.esri.core.geometry.Point(point.getX(), point.getZ());
+    return new com.esri.core.geometry.Point(point.getX().doubleValue(), point.getZ().doubleValue());
   }
 }
