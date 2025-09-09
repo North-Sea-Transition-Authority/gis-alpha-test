@@ -41,10 +41,22 @@ public class EsriGeometryApiTestUtil {
   }
 
   public static List<Coordinate> getRoundedCoordinates(OGCLineString lineString, int decimalPlaces) {
+    return getCoordinates(lineString)
+        .stream()
+        .map(coordinate ->
+            new Coordinate(
+                roundDecimalPlaces(coordinate.x(), decimalPlaces),
+                roundDecimalPlaces(coordinate.z(), decimalPlaces)
+            )
+        )
+        .toList();
+  }
+
+  public static List<Coordinate> getCoordinates(OGCLineString lineString) {
     var coordinates = new ArrayList<Coordinate>();
     for (var i = 0; i < lineString.numPoints(); i++) {
       var point = lineString.pointN(i);
-      coordinates.add(new Coordinate(roundDecimalPlaces(point.X(), decimalPlaces), roundDecimalPlaces(point.Y(), decimalPlaces)));
+      coordinates.add(new Coordinate(point.X(), point.Y()));
     }
     return coordinates;
   }

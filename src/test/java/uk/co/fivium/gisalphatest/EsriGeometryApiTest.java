@@ -1,6 +1,7 @@
 package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getCoordinates;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
@@ -46,7 +47,7 @@ class EsriGeometryApiTest {
         .createFromEsriGeometry(densifiedEsriPolyline, ED50_SR);
 
     assertThat(getRoundedCoordinates(densifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+        .isEqualTo(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   @Test
@@ -67,8 +68,7 @@ class EsriGeometryApiTest {
     var simplifiedLineString = (OGCLineString) OGCGeometry
         .createFromEsriGeometry(simplifiedEsriPolyline, ED50_SR);
 
-    assertThat(getRoundedCoordinates(simplifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    assertThat(getCoordinates(simplifiedLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
   @Test
@@ -95,8 +95,8 @@ class EsriGeometryApiTest {
     inputPolygon.setSpatialReference(BNG_SR);
 
     // There is an OperatorGeodeticArea, however, it is not implemented
-    assertThat(roundDecimalPlaces(inputPolygon.area() / 1000000, 11))
-        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 11));
+    assertThat(roundDecimalPlaces(inputPolygon.area() / 1000000, 13))
+        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 13));
   }
 
   @Test
@@ -118,8 +118,8 @@ class EsriGeometryApiTest {
 
     var unionPolygon = (OGCPolygon) inputPolygon1.union(inputPolygon2);
 
-    assertThat(rotateCoordinateRing(getRoundedCoordinates(unionPolygon.exteriorRing(), 11), 485))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.exteriorRing(), 11));
+    assertThat(rotateCoordinateRing(getCoordinates(unionPolygon.exteriorRing()), 485))
+        .isEqualTo(getCoordinates(expectedOutputPolygon.exteriorRing()));
   }
 
   @Test
@@ -141,8 +141,7 @@ class EsriGeometryApiTest {
 
     var unionLineString = (OGCLineString) inputLineString1.union(inputLineString2);
 
-    assertThat(getRoundedCoordinates(unionLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    assertThat(getCoordinates(unionLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
   @Test
@@ -170,7 +169,7 @@ class EsriGeometryApiTest {
         .createFromEsriGeometry(simplifiedExpectedOutputEsriPolygon, ED50_SR);
 
     assertThat(rotateCoordinateRing(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5), 2))
-        .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
+        .isEqualTo(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
   }
 
   @Test
@@ -192,8 +191,7 @@ class EsriGeometryApiTest {
 
     var intersectionLineString = (OGCLineString) inputLineString1.intersection(inputLineString2);
 
-    assertThat(getRoundedCoordinates(intersectionLineString, 5))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 5));
+    assertThat(getCoordinates(intersectionLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
   private List<Coordinate> getRoundedCoordinates(OGCLineString lineString, int places) {

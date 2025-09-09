@@ -1,6 +1,7 @@
 package uk.co.fivium.gisalphatest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getCoordinates;
 import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getRoundedCoordinates;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
@@ -18,6 +19,7 @@ import com.esri.core.geometry.ogc.OGCLineString;
 import com.esri.core.geometry.ogc.OGCMultiLineString;
 import com.esri.core.geometry.ogc.OGCPolygon;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -26,7 +28,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,7 @@ class ArcGisRestApiTest {
     var densifiedLineString = (OGCLineString) densify(inputLineString, false);
 
     assertThat(getRoundedCoordinates(densifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+        .isEqualTo(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   private OGCGeometry densify(OGCGeometry geometry, boolean geodesic) throws Exception {
@@ -112,8 +113,7 @@ class ArcGisRestApiTest {
 
     var simplifiedLineString = (OGCLineString) simplify(inputLineString);
 
-    assertThat(getRoundedCoordinates(simplifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    assertThat(getCoordinates(simplifiedLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
   private OGCGeometry simplify(OGCGeometry geometry) throws Exception {
@@ -202,8 +202,8 @@ class ArcGisRestApiTest {
     var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     var parsedResponse = objectMapper.readTree(response.body());
 
-    assertThat(roundDecimalPlaces(parsedResponse.get("areas").get(0).asDouble() / 1000000, 11))
-        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 11));
+    assertThat(roundDecimalPlaces(parsedResponse.get("areas").get(0).asDouble() / 1000000, 13))
+        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 13));
   }
 
   @Test
@@ -226,7 +226,7 @@ class ArcGisRestApiTest {
     var unionPolygon = (OGCPolygon) union(inputPolygon1, inputPolygon2);
 
     assertThat(rotateCoordinateRing(getRoundedCoordinates(unionPolygon.exteriorRing(), 9), 1))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.exteriorRing(), 9));
+        .isEqualTo(getRoundedCoordinates(expectedOutputPolygon.exteriorRing(), 9));
   }
 
   @Test
@@ -248,8 +248,8 @@ class ArcGisRestApiTest {
 
     var unionLineString = (OGCLineString) union(inputLineString1, inputLineString2);
 
-    assertThat(getRoundedCoordinates(unionLineString, 9))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 9));
+    assertThat(getRoundedCoordinates(unionLineString, 12))
+        .isEqualTo(getRoundedCoordinates(expectedOutputLineString, 12));
   }
 
   @Test
@@ -284,11 +284,11 @@ class ArcGisRestApiTest {
       var unionSubLineStringRoundedCoordinates = getRoundedCoordinates(unionSubLineString, 9);
 
       if (i == 1) {
-        Collections.reverse(unionSubLineStringRoundedCoordinates);
+        unionSubLineStringRoundedCoordinates = Lists.reverse(unionSubLineStringRoundedCoordinates);
       }
 
       assertThat(unionSubLineStringRoundedCoordinates)
-          .containsExactlyElementsOf(getRoundedCoordinates(densifiedExpectedSubLineString, 9));
+          .isEqualTo(getRoundedCoordinates(densifiedExpectedSubLineString, 9));
     }
   }
 
@@ -337,7 +337,7 @@ class ArcGisRestApiTest {
     var simplifiedExpectedOutputPolygon = (OGCPolygon) simplify(expectedOutputPolygon);
 
     assertThat(rotateCoordinateRing(getRoundedCoordinates(intersectionPolygon.exteriorRing(), 5), 2))
-        .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
+        .isEqualTo(getRoundedCoordinates(simplifiedExpectedOutputPolygon.exteriorRing(), 5));
   }
 
   @Test
@@ -359,8 +359,8 @@ class ArcGisRestApiTest {
 
     var intersectionLineString = (OGCLineString) intersect(inputLineString1, inputLineString2);
 
-    assertThat(getRoundedCoordinates(intersectionLineString, 5))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 5));
+    assertThat(getRoundedCoordinates(intersectionLineString, 12))
+        .isEqualTo(getRoundedCoordinates(expectedOutputLineString, 12));
   }
 
   @Test
@@ -464,13 +464,13 @@ class ArcGisRestApiTest {
     var cutPolygon1 = (OGCPolygon) cutPolygons.get(0);
     var cutPolygon2 = (OGCPolygon) cutPolygons.get(1);
 
-    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 12))
         .contains(new Coordinate(-4.5, 59.008684166));
-    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 12))
         .contains(new Coordinate(-4.5, 58));
-    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 12))
         .contains(new Coordinate(-4.5, 59.008684166));
-    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
+    assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 12))
         .contains(new Coordinate(-4.5, 58));
   }
 
@@ -501,8 +501,8 @@ class ArcGisRestApiTest {
     var cutPolygon2 = (OGCPolygon) cutPolygons.get(1);
 
     // Note: There are additional points in the results, so use containsAll
-    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
-        .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 12))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 12));
     assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
         .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 9));
   }
@@ -539,8 +539,8 @@ class ArcGisRestApiTest {
     var cutPolygon3 = (OGCPolygon) cutPolygons.get(2);
 
     // Note: There are additional points in the results, so use containsAll
-    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 9))
-        .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 9));
+    assertThat(getRoundedCoordinates(cutPolygon1.exteriorRing(), 12))
+        .containsAll(getRoundedCoordinates(expectedOutputPolygon1.exteriorRing(), 12));
     assertThat(getRoundedCoordinates(cutPolygon2.exteriorRing(), 9))
         .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
     assertThat(getRoundedCoordinates(cutPolygon3.exteriorRing(), 9))

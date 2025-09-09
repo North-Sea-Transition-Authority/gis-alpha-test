@@ -1,5 +1,6 @@
 package uk.co.fivium.gisalphatest.util;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,9 +15,10 @@ public class TestUtil {
   public static final double ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2 = 21.1926213500511;
 
   public static List<Coordinate> rotateCoordinateRing(List<Coordinate> coordinates, int distance) {
-    coordinates.removeLast(); // Remove the duplicated end point that closes the ring
-    Collections.rotate(coordinates, distance);
-    coordinates.add(coordinates.getFirst()); // Add the end point back
-    return coordinates;
+    var newCoordinates = new ArrayList<>(coordinates);
+    newCoordinates.removeLast(); // Remove the duplicated end point that closes the ring
+    Collections.rotate(newCoordinates, distance);
+    newCoordinates.add(newCoordinates.getFirst()); // Add the end point back
+    return newCoordinates;
   }
 }

@@ -45,7 +45,7 @@ class JtsTest {
     var densifiedLineString = (LineString) densifier.getResultGeometry();
 
     assertThat(getRoundedCoordinates(densifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+        .isEqualTo(getRoundedCoordinates(expectedOutputLineString, 11));
   }
 
   @Test
@@ -60,8 +60,7 @@ class JtsTest {
 
     var simplifiedLineString = (LineString) DouglasPeuckerSimplifier.simplify(inputLineString, 0.01);
 
-    assertThat(getRoundedCoordinates(simplifiedLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    assertThat(getCoordinates(simplifiedLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
   @Test
@@ -82,8 +81,8 @@ class JtsTest {
 
     var inputPolygon = (Polygon) BNG_GEO_JSON_READER.read(inputPolygonGeoJson);
 
-    assertThat(roundDecimalPlaces(inputPolygon.getArea() / 1000000, 11))
-        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 11));
+    assertThat(roundDecimalPlaces(inputPolygon.getArea() / 1000000, 13))
+        .isEqualTo(roundDecimalPlaces(ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2, 13));
   }
 
   @Test
@@ -101,8 +100,8 @@ class JtsTest {
 
     var unionPolygon = (Polygon) inputPolygon1.union(inputPolygon2);
 
-    assertThat(Lists.reverse(rotateCoordinateRing(getRoundedCoordinates(unionPolygon.getExteriorRing(), 11), 41)))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputPolygon.getExteriorRing(), 11));
+    assertThat(Lists.reverse(rotateCoordinateRing(getCoordinates(unionPolygon.getExteriorRing()), 41)))
+        .isEqualTo(getCoordinates(expectedOutputPolygon.getExteriorRing()));
   }
 
   @Test
@@ -120,8 +119,7 @@ class JtsTest {
 
     var unionLineString = (LineString) inputLineString1.union(inputLineString2);
 
-    assertThat(getRoundedCoordinates(unionLineString, 11))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 11));
+    assertThat(getCoordinates(unionLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
   @Test
@@ -142,7 +140,7 @@ class JtsTest {
     var simplifiedExpectedOutputPolygon = (Polygon) DouglasPeuckerSimplifier.simplify(expectedOutputPolygon, 0.01);
 
     assertThat(Lists.reverse(getRoundedCoordinates(intersectionPolygon.getExteriorRing(), 5)))
-        .containsExactlyElementsOf(getRoundedCoordinates(simplifiedExpectedOutputPolygon.getExteriorRing(), 5));
+        .isEqualTo(getRoundedCoordinates(simplifiedExpectedOutputPolygon.getExteriorRing(), 5));
   }
 
   @Test
@@ -160,15 +158,26 @@ class JtsTest {
 
     var intersectionLineString = (LineString) inputLineString1.intersection(inputLineString2);
 
-    assertThat(getRoundedCoordinates(intersectionLineString, 5))
-        .containsExactlyElementsOf(getRoundedCoordinates(expectedOutputLineString, 5));
+    assertThat(getCoordinates(intersectionLineString)).isEqualTo(getCoordinates(expectedOutputLineString));
   }
 
-  private List<Coordinate> getRoundedCoordinates(LineString lineString, int places) {
+  private List<Coordinate> getRoundedCoordinates(LineString lineString, int decimalPlaces) {
+    return getCoordinates(lineString)
+        .stream()
+        .map(coordinate ->
+            new Coordinate(
+                roundDecimalPlaces(coordinate.x(), decimalPlaces),
+                roundDecimalPlaces(coordinate.z(), decimalPlaces)
+            )
+        )
+        .toList();
+  }
+
+  private List<Coordinate> getCoordinates(LineString lineString) {
     var coordinates = new ArrayList<Coordinate>();
     for (var i = 0; i < lineString.getNumPoints(); i++) {
       var point = lineString.getPointN(i);
-      coordinates.add(new Coordinate(roundDecimalPlaces(point.getX(), places), roundDecimalPlaces(point.getY(), places)));
+      coordinates.add(new Coordinate(point.getX(), point.getY()));
     }
     return coordinates;
   }
