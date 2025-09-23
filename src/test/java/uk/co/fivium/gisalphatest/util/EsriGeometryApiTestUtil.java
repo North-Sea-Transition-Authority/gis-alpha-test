@@ -25,10 +25,22 @@ public class EsriGeometryApiTestUtil {
 
     rotateCoordinateRing(coordinates, distance);
 
-    return newPolygon(coordinates, polygon.getEsriSpatialReference());
+    return newPolygonFromCoordinates(coordinates, polygon.getEsriSpatialReference());
   }
 
-  public static OGCPolygon newPolygon(List<Coordinate> coordinates, SpatialReference spatialReference) {
+  public static OGCLineString newLineStringFromCoordinates(List<Coordinate> coordinates) {
+    var lineString = new com.esri.core.geometry.Polyline();
+
+    lineString.startPath(toEsri(coordinates.getFirst()));
+
+    for (var point : coordinates.subList(1, coordinates.size()).reversed()) {
+      lineString.lineTo(toEsri(point));
+    }
+
+    return (OGCLineString) OGCGeometry.createFromEsriGeometry(lineString, null);
+  }
+
+  public static OGCPolygon newPolygonFromCoordinates(List<Coordinate> coordinates, SpatialReference spatialReference) {
     var newPolygon = new com.esri.core.geometry.Polygon();
 
     var points = coordinates.stream()
@@ -59,5 +71,9 @@ public class EsriGeometryApiTestUtil {
       coordinates.add(new Coordinate(point.X(), point.Y()));
     }
     return coordinates;
+  }
+
+  public static com.esri.core.geometry.Point toEsri(Coordinate coordinate) {
+    return new com.esri.core.geometry.Point(coordinate.x(), coordinate.z());
   }
 }

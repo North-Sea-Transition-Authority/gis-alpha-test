@@ -3,6 +3,8 @@ package uk.co.fivium.gisalphatest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getCoordinates;
 import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.getRoundedCoordinates;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.newLineStringFromCoordinates;
+import static uk.co.fivium.gisalphatest.util.EsriGeometryApiTestUtil.newPolygonFromCoordinates;
 import static uk.co.fivium.gisalphatest.util.MathUtil.roundDecimalPlaces;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_BNG_POLYGON_AREA_KM2;
 import static uk.co.fivium.gisalphatest.util.TestUtil.ORACLE_AREA_CALCULATION_ED50_POLYGON_AREA_KM2;
@@ -10,6 +12,9 @@ import static uk.co.fivium.gisalphatest.util.TestUtil.rotateCoordinateRing;
 
 import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.MultiPoint;
+import com.esri.core.geometry.OperatorCut;
+import com.esri.core.geometry.OperatorEquals;
+import com.esri.core.geometry.OperatorUnion;
 import com.esri.core.geometry.Point;
 import com.esri.core.geometry.Polygon;
 import com.esri.core.geometry.Polyline;
@@ -545,6 +550,117 @@ class ArcGisRestApiTest {
         .containsAll(getRoundedCoordinates(expectedOutputPolygon2.exteriorRing(), 9));
     assertThat(getRoundedCoordinates(cutPolygon3.exteriorRing(), 9))
         .containsAll(getRoundedCoordinates(expectedOutputPolygon3.exteriorRing(), 9));
+  }
+
+  @Test
+  void gisa20() throws Exception {
+    var shape1GeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[2,54],[2,53],[3,53],[3,54],[2,54]]]}";
+    var shape1 = (OGCPolygon) OGCGeometry.fromGeoJson(shape1GeoJson);
+
+    // 1.a - densify geodesic line a on shape 1 from point x to point y
+    var densifiedShape1 = densifyBetween(shape1, new Coordinate(2, 53), new Coordinate(3, 53));
+
+    // 1.b - create a cut line b which intersects line a midway between two dense points
+
+    // midway between these two dense points: [2.2499969641083633,53.00078836115751],[2.251485065477092,53.00079148029776]
+    var cutLineBLineStringGeoJson = "{\"type\": \"LineString\", \"coordinates\": [[2.2507410147927276, 52.9], [2.2507410147927276, 54.1]]}";
+    var cutLineBLineString = (OGCLineString) OGCGeometry.fromGeoJson(cutLineBLineStringGeoJson);
+
+    // 1.c - cut shape 1 with cut line b to create shape 2 and shape 3
+    var shape1CutCursor = OperatorCut.local().execute(
+        true,
+        densifiedShape1.getEsriGeometry(),
+        (Polyline) cutLineBLineString.getEsriGeometry(),
+        null,
+        null
+    );
+    var shape3 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(shape1CutCursor.next(), null);
+    var shape2 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(shape1CutCursor.next(), null);
+
+    // 2.a - remove the dense points from line a on shape 2 + 2.b - re-densify line a on shape 2 from new origin point z to point y
+    var shape2LineAStartPoint = new Coordinate(2.2507410147927276, 53.000789920727634);
+    var shape2LineAEndPoint = new Coordinate(3, 53);
+
+    var redensifiedShape2 = redensifyBetween(shape2, shape2LineAStartPoint, shape2LineAEndPoint);
+
+    // 3.a - create a cut line c which intersects line a in shape 2
+    var cutLineCLineStringGeoJson = "{\"type\":\"LineString\",\"coordinates\":[[2.6253705073963780,52.9],[2.6253705073963780,54.1]]}";
+    var cutLineCLineString = (OGCLineString) OGCGeometry.fromGeoJson(cutLineCLineStringGeoJson);
+
+    // 3.b - cut shape 2 with cut line c to give us intersection point p1
+    var redensifiedShape2CutCursor = OperatorCut.local().execute(
+        true,
+        redensifiedShape2.getEsriGeometry(),
+        (Polyline) cutLineCLineString.getEsriGeometry(),
+        null,
+        null
+    );
+    var redensifiedShape2CutShape1 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(redensifiedShape2CutCursor.next(), null);
+
+    var intsersectionPointP1 = new Coordinate(2.625370507396378, 53.000985064792765);
+
+    // 4.a - cut shape 1 using the same cut line c to give us intersection point p2
+    var shape1CutCursor2 = OperatorCut.local().execute(
+        true,
+        densifiedShape1.getEsriGeometry(),
+        (Polyline) cutLineCLineString.getEsriGeometry(),
+        null,
+        null
+    );
+    var shape1CutShape1 = (OGCPolygon) OGCGeometry.createFromEsriGeometry(shape1CutCursor2.next(), null);
+
+    var intersectionPointP2 = new Coordinate(2.625370507396378, 53.00098506432871);
+
+    // 6a.a - re-densify shape 3 from the new point z to point x
+    var shape3LineAStartPoint = new Coordinate(2, 53);
+    var shape3LineAEndPoint = new Coordinate(2.2507410147927276, 53.000789920727634);
+
+    var redensifiedShape3 = redensifyBetween(shape3, shape3LineAStartPoint, shape3LineAEndPoint);
+
+    // 6a.b - union shape 3 from a above with densified shape 2 from step 2 above
+    var redensifiedShape2AndShape3Union = OperatorUnion.local().execute(
+        redensifiedShape2.getEsriGeometry(),
+        redensifiedShape3.getEsriGeometry(),
+        null,
+        null
+    );
+
+    // 6a.c - check if the unioned output is equal to the pre-cut densified shape 1 in step 1 above
+    var equals = OperatorEquals.local().execute(densifiedShape1.getEsriGeometry(), redensifiedShape2AndShape3Union, null, null);
+    // false
+  }
+
+  private OGCPolygon densifyBetween(OGCPolygon ogcPolygon, Coordinate startCoordinate, Coordinate endCoordinate) throws Exception {
+    var coordinates = getCoordinates(ogcPolygon.exteriorRing());
+
+    var lineString = newLineStringFromCoordinates(List.of(startCoordinate, endCoordinate));
+    lineString = (OGCLineString) densify(lineString, true);
+
+    var startIndex = coordinates.lastIndexOf(startCoordinate);
+    var lineStringCoordinates = getCoordinates(lineString);
+
+    coordinates.addAll(startIndex + 1, lineStringCoordinates.subList(1, lineStringCoordinates.size() - 1));
+
+    return newPolygonFromCoordinates(coordinates, ED50_SR);
+  }
+
+  private OGCPolygon redensifyBetween(OGCPolygon ogcPolygon, Coordinate startCoordinate, Coordinate endCoordinate) throws Exception {
+    var removed = removeCoordinatesBetween(ogcPolygon, startCoordinate, endCoordinate);
+
+    return densifyBetween(removed, startCoordinate, endCoordinate);
+  }
+
+  private OGCPolygon removeCoordinatesBetween(OGCPolygon ogcPolygon, Coordinate startCoordinate, Coordinate endCoordinate) {
+    var coordinates = getCoordinates(ogcPolygon.exteriorRing());
+
+    var startIndex = coordinates.lastIndexOf(startCoordinate);
+    var endIndex = coordinates.lastIndexOf(endCoordinate);
+
+    var filteredCoordinates = new ArrayList<Coordinate>();
+    filteredCoordinates.addAll(coordinates.subList(0, startIndex + 1));
+    filteredCoordinates.addAll(coordinates.subList(endIndex, coordinates.size()));
+
+    return newPolygonFromCoordinates(filteredCoordinates, ED50_SR);
   }
 
   private List<OGCGeometry> cut(OGCGeometry target, OGCGeometry cutter) throws Exception {
