@@ -628,6 +628,13 @@ class ArcGisRestApiTest {
     // 6a.c - check if the unioned output is equal to the pre-cut densified shape 1 in step 1 above
     var equals = OperatorEquals.local().execute(densifiedShape1.getEsriGeometry(), redensifiedShape2AndShape3Union, null, null);
     // false
+
+    // 6b.a - validate densifying backwards gives you the same output
+    var lineString = newLineStringFromCoordinates(List.of(new Coordinate(2, 53), new Coordinate(3, 53)));
+    var lineStringInReverseOrder = newLineStringFromCoordinates(List.of(new Coordinate(3, 53), new Coordinate(2, 53)));
+
+    var densifiedLineString = (OGCLineString) densify(lineString, true);
+    var densifiedLineStringInReverseOrder = (OGCLineString) densify(lineStringInReverseOrder, true);
   }
 
   private OGCPolygon densifyBetween(OGCPolygon ogcPolygon, Coordinate startCoordinate, Coordinate endCoordinate) throws Exception {
