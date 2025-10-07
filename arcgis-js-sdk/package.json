@@ -1,0 +1,20 @@
+{
+  "name": "arcgis-js-sdk-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "type": "module",
+  "dependencies": {
+    "@arcgis/core": "^4.33.14",
+    "@terraformer/arcgis": "^2.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/terraformer__arcgis": "^2.0.5",
+    "typescript": "^5.9.2",
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.4"
+  }
+}
