@@ -553,7 +553,7 @@ class ArcGisRestApiTest {
   }
 
   @Test
-  void gisa20() throws Exception {
+  void cutAndRedensifyPolygon() throws Exception {
     var shape1GeoJson = "{\"type\":\"Polygon\",\"coordinates\":[[[2,54],[2,53],[3,53],[3,54],[2,54]]]}";
     var shape1 = (OGCPolygon) OGCGeometry.fromGeoJson(shape1GeoJson);
 
