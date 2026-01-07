@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-class GisAlphaTestApplication {
+public class GisAlphaTestApplication {
 
   public static void main(String[] args) {
     SpringApplication.run(GisAlphaTestApplication.class, args);

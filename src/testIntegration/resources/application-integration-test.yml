@@ -4,3 +4,10 @@ spring:
     username: user
     password: password
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    oracle:
+      url: jdbc:h2:mem:testdb
+      username: ''
+      password: ''
+      driver-class-name: org.h2.Driver
+      flyway:
+        enabled: false
