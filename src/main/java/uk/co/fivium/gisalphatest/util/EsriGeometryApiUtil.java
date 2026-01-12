@@ -1,7 +1,6 @@
 package uk.co.fivium.gisalphatest.util;
 
 import java.util.List;
-import uk.co.fivium.gisalphatest.feature.Point;
 
 public class EsriGeometryApiUtil {
 
@@ -21,7 +20,9 @@ public class EsriGeometryApiUtil {
     }
   }
 
+  /*
   public static com.esri.core.geometry.Point toEsri(Point point) {
-    return new com.esri.core.geometry.Point(point.getX().doubleValue(), point.getZ().doubleValue());
+    return new com.esri.core.geometry.Point(point.x().doubleValue(), point.y().doubleValue());
   }
+   */
 }

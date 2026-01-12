@@ -9,9 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Map;
-import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 @Entity
@@ -19,12 +17,9 @@ import org.hibernate.type.SqlTypes;
 public class Line {
 
   @Id
-  @UuidGenerator
-  private UUID id;
+  private Integer id;
 
-  @JoinColumn(name = "feature_id")
-  @ManyToOne
-  private Feature feature;
+  private Integer boundarySidId;
 
   @JoinColumn(name = "polygon_id")
   @ManyToOne
@@ -37,20 +32,26 @@ public class Line {
 
   private Integer ringConnectionOrder;
 
+  private String lineJson;
+
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
-  public UUID getId() {
+  public Integer getId() {
     return id;
   }
 
-  public Feature getFeature() {
-    return feature;
+  public void setId(Integer id) {
+    this.id = id;
   }
 
-  public void setFeature(Feature feature) {
-    this.feature = feature;
+  public Integer getBoundarySidId() {
+    return boundarySidId;
+  }
+
+  public void setBoundarySidId(Integer boundarySidId) {
+    this.boundarySidId = boundarySidId;
   }
 
   public Polygon getPolygon() {
@@ -87,6 +88,14 @@ public class Line {
 
   public boolean isExteriorRing() {
     return ringNumber == 0;
+  }
+
+  public String getLineJson() {
+    return lineJson;
+  }
+
+  public void setLineJson(String lineJson) {
+    this.lineJson = lineJson;
   }
 
   public Map<String, Object> getAttributes() {

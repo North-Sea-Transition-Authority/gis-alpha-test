@@ -4,28 +4,26 @@ import static uk.co.fivium.gisalphatest.util.EsriGeometryApiUtil.appendRingToPol
 
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
-import com.esri.core.geometry.ogc.OGCPolygon;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import uk.co.fivium.gisalphatest.util.EsriGeometryApiUtil;
 
 @Service
 public class FeatureEsriConversionService {
 
   private final LineRepository lineRepository;
-  private final PointRepository pointRepository;
 
-  FeatureEsriConversionService(LineRepository lineRepository, PointRepository pointRepository) {
+  FeatureEsriConversionService(LineRepository lineRepository) {
     this.lineRepository = lineRepository;
-    this.pointRepository = pointRepository;
   }
 
-  public OGCPolygon toOgc(Polygon polygon) {
+  /**
+   * After updating the model in GISA-32 this no longer works, and we are not going to update it as we will exclusively use the
+   * arc gis js sdk
+   */
+  public OGCGeometry toOgc(Polygon polygon) {
     var lines = lineRepository.findAllByPolygon(polygon);
-    var points = pointRepository.findAllByLineIn(lines);
-
     var esriPolygon = new com.esri.core.geometry.Polygon();
 
     var linesByRingNumber = lines.stream()
@@ -35,9 +33,6 @@ public class FeatureEsriConversionService {
         .sorted()
         .toList();
 
-    var pointsByLineId = points.stream()
-        .collect(Collectors.groupingBy(point -> point.getLine().getId()));
-
     for (var ringNumber : sortedRingNumbers) {
       var sortedLinesInRing = linesByRingNumber.get(ringNumber).stream()
           .sorted(Comparator.comparing(Line::getRingConnectionOrder))
@@ -45,19 +40,17 @@ public class FeatureEsriConversionService {
 
       var ringEsriPoints = new ArrayList<com.esri.core.geometry.Point>();
 
-      for (var line : sortedLinesInRing) {
-        var sortedLinePoints = pointsByLineId.get(line.getId())
-            .stream()
-            .sorted(Comparator.comparing(Point::getLineConnectionOrder))
-            .map(EsriGeometryApiUtil::toEsri)
-            .toList();
-
-        ringEsriPoints.addAll(sortedLinePoints);
-      }
-
-      appendRingToPolygon(esriPolygon, ringEsriPoints);
+//      for (var line : sortedLinesInRing) {
+//        var sortedLinePoints = line.getLineJson()
+//            .stream()
+//            .map(EsriGeometryApiUtil::toEsri)
+//            .toList();
+//
+//        ringEsriPoints.addAll(sortedLinePoints);
+//      }
+//      appendRingToPolygon(esriPolygon, ringEsriPoints);
     }
 
-    return (OGCPolygon) OGCGeometry.createFromEsriGeometry(esriPolygon, SpatialReference.create(polygon.getFeature().getSrs()));
+    return OGCGeometry.createFromEsriGeometry(esriPolygon, SpatialReference.create(polygon.getFeature().getSrs()));
   }
 }
