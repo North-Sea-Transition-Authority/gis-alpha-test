@@ -9,6 +9,7 @@ option java_outer_classname = "ArcGisServiceProto";
 service ArcGisService {
   rpc convertGeoJsonLineToEsriJsonLine (GeoJsonRequest) returns (EsriJsonResponse) {};
   rpc buildPolygon (BuildPolygonRequest) returns (EsriJsonResponse) {};
+  rpc splitPolygon (SplitPolygonRequest) returns (SplitPolygonResponse) {};
 }
 
 message GeoJsonRequest {
@@ -22,4 +23,17 @@ message EsriJsonResponse {
 message BuildPolygonRequest {
   repeated string esriJsonLineStrings = 1;
   int32 srs = 2;
+}
+
+message EsriJsonPolygon {
+  string esriJsonPolygon = 1;
+}
+
+message SplitPolygonRequest {
+  EsriJsonPolygon target = 1;
+  string esriJsonCutter = 2;
+}
+
+message SplitPolygonResponse {
+  repeated EsriJsonPolygon polygons = 1;
 }

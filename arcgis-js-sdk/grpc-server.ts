@@ -7,6 +7,7 @@ import type {ProtoGrpcType} from "./generated/ArcGisJs.ts";
 import type {ArcGisServiceHandlers} from "./generated/arcgisjs/ArcGisService.ts";
 import Polygon from "@arcgis/core/geometry/Polygon";
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
+import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 
 const PROTO_PATH = path.join("../src/main/proto", 'ArcGisJs.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -45,12 +46,30 @@ const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => 
   callback(null, {esriJsonString: JSON.stringify(polygon.toJSON())})
 }
 
+const splitPolygon: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => {
+  console.log("Split polygon");
+
+  const target = Polygon.fromJSON(JSON.parse(call.request.target.esriJsonPolygon));
+  const cutter = Polyline.fromJSON(JSON.parse(call.request.esriJsonCutter));
+
+  const cutResults = cutOperator.execute(target, cutter) as Polygon[];
+  const polygons = (cutResults || []).map((poly) => {
+    return {
+      esriJsonPolygon: JSON.stringify(poly.toJSON())
+    };
+  });
+
+  console.log(`Created ${polygons.length} pieces`);
+  callback(null, { polygons });
+}
+
 function main() {
   const server = new grpc.Server();
 
   server.addService(arcGisJsProto.ArcGisService.service, {
     convertGeoJsonLineToEsriJsonLine: convertGeoJsonLineToEsriJsonLine,
-    buildPolygon: buildPolygon
+    buildPolygon: buildPolygon,
+    splitPolygon: splitPolygon
   });
 
   const bindAddress = '0.0.0.0:8082';

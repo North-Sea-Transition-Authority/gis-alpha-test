@@ -2,8 +2,11 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
+import com.example.grpc.EsriJsonPolygon;
 import com.example.grpc.EsriJsonResponse;
 import com.example.grpc.GeoJsonRequest;
+import com.example.grpc.SplitPolygonRequest;
+import com.example.grpc.SplitPolygonResponse;
 import java.util.List;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
@@ -43,5 +46,18 @@ public class GrpcClientService {
 
     EsriJsonResponse response = arcgisClient.buildPolygon(request);
     return response.getEsriJsonString();
+  }
+
+  public List<String> splitPolygon(String polygon, String cutter) {
+    var request = SplitPolygonRequest.newBuilder()
+        .setTarget(EsriJsonPolygon.newBuilder().setEsriJsonPolygon(polygon))
+        .setEsriJsonCutter(cutter)
+        .build();
+
+    SplitPolygonResponse response = arcgisClient.splitPolygon(request);
+    return response.getPolygonsList()
+        .stream()
+        .map(EsriJsonPolygon::getEsriJsonPolygon)
+        .toList();
   }
 }
