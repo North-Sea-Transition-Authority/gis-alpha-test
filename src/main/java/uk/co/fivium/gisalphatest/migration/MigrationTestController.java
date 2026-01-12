@@ -27,14 +27,16 @@ public class MigrationTestController {
     //Migrate
     migrationService.migrate(
         List.of(
-            new OracleShapeCompositeKey(23922223, "GISA-27"),
-            new OracleShapeCompositeKey(23922738, "GISA-27")
+//            new OracleShapeCompositeKey(23922223, "GISA-27"),
+//            new OracleShapeCompositeKey(23922738, "GISA-27"),
+            new OracleShapeCompositeKey(29960964, "GISA-63")
         )
     );
 
     //Validate by building all the polygons based on the esri json lines
-    polygonService.getPolygonsAsEsriJson(23922223, "GISA-27").forEach(System.out::println);
-    polygonService.getPolygonsAsEsriJson(23922738, "GISA-27").forEach(System.out::println);;
+//    polygonService.getPolygonsAsEsriJson(23922223, "GISA-27").forEach(System.out::println);
+//    polygonService.getPolygonsAsEsriJson(23922738, "GISA-27").forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(29960964, "GISA-63").forEach(System.out::println);
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }

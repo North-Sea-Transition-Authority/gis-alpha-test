@@ -8,6 +8,7 @@ import type {ArcGisServiceHandlers} from "./generated/arcgisjs/ArcGisService.ts"
 import Polygon from "@arcgis/core/geometry/Polygon";
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
+import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator";
 
 const PROTO_PATH = path.join("../src/main/proto", 'ArcGisJs.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -20,13 +21,24 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 
 const arcGisJsProto: ProtoGrpcType["arcgisjs"] = grpc.loadPackageDefinition(packageDefinition).arcgisjs as any;
 
-const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeoJsonLineToEsriJsonLine'] = (call, callback) => {
-  console.log(`Input geojson: ${call.request.geoJsonString}`)
+const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeoJsonLineToEsriJsonLine'] = async (call, callback) => {
+  const { geoJsonString, wkid, isGeodesic } = call.request;
+  console.log(`Input srs: ${wkid} isGeodesic: ${isGeodesic} geojson: ${geoJsonString}`)
 
-  const polyLine = JSON.stringify(Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(call.request.geoJsonString))));
-  console.log(`Output esrijson: ${polyLine}`)
+  let polyline: Polyline = Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(geoJsonString)));
+  polyline.spatialReference = { wkid: wkid }
 
-  callback(null, {esriJsonString: polyLine});
+  if (isGeodesic) {
+    if (!geodeticDensifyOperator.isLoaded()) {
+      await geodeticDensifyOperator.load();
+    }
+
+    polyline = geodeticDensifyOperator.execute(polyline, 50, { curveType: "geodesic", unit: "meters" }) as Polyline;
+
+  }
+  const esriJsonString = JSON.stringify(polyline);
+  console.log(`Output esrijson: ${esriJsonString}`)
+  callback(null, {esriJsonString: esriJsonString});
 }
 
 const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => {

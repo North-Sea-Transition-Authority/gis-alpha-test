@@ -20,11 +20,19 @@ public class GrpcClientService {
   /**
    * Converts a GeoJSON line to an EsriJSON polyline.
    * @param geoJson A GeoJSON of type "LineString" in string format
-   * @return An EsriJSON polygon in string format
+   * @param wkid the spatial reference Well Known ID of the geojson. (E.g. the number version of "ED 50")
+   * @param isGeodesic true if the input GeoJSON represents a geodesic line.
+   * @return An EsriJSON polyline in string format
    */
-  public String convertLineToEsriJson(String geoJson) {
+  public String convertLineToEsriJson(
+      String geoJson,
+      Integer wkid,
+      boolean isGeodesic
+  ) {
     GeoJsonRequest request = GeoJsonRequest.newBuilder()
         .setGeoJsonString(geoJson)
+        .setWkid(wkid)
+        .setIsGeodesic(isGeodesic)
         .build();
 
     EsriJsonResponse response = arcgisClient.convertGeoJsonLineToEsriJsonLine(request);

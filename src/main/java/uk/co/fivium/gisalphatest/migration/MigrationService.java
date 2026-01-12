@@ -92,7 +92,8 @@ public class MigrationService {
                 oracleLine,
                 ringNumber,
                 ringConnectionOrder,
-                oracleLine.getLineNavigationType()
+                oracleLine.getLineNavigationType(),
+                newFeature.getSrs()
             );
 
             newLines.add(newLine);
@@ -155,7 +156,8 @@ public class MigrationService {
       OracleBoundaryLine oracleBoundaryLine,
       Integer ringNumber,
       Integer connectionOrder,
-      LineNavigationType lineNavigationType
+      LineNavigationType lineNavigationType,
+      Integer wkid
   ) {
 
     var line = new Line();
@@ -169,8 +171,8 @@ public class MigrationService {
       // convert geoJson to esriJson using ArcGis JS SDK via gRPC
 
       String esriJson = switch (lineNavigationType) {
-        case LOXODROME -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson());
-        case GEODESIC -> null;
+        case LOXODROME -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, false);
+        case GEODESIC -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, true);
         case CARTESIAN -> null;
       };
 

@@ -14,6 +14,8 @@ service ArcGisService {
 
 message GeoJsonRequest {
   string geoJsonString = 1;
+  int32 wkid = 2;
+  bool isGeodesic = 3;
 }
 
 message EsriJsonResponse {
