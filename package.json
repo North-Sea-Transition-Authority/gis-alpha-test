@@ -1,5 +1,8 @@
 {
   "name": "gis-alpha-test",
+  "scripts": {
+    "build-all": "gradlew clean && gradlew extractIncludeProto && gradlew extractProto && gradlew generateProto && cd arcgis-js-sdk && npm install && npm run proto-gen && cd .."
+  },
   "devDependencies": {
     "@babel/plugin-transform-class-properties": "^7.27.1",
     "@babel/preset-env": "^7.18.2",

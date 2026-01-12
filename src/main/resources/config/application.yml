@@ -36,3 +36,9 @@ branding:
   customer:
     name: North Sea Transition Authority
     mnemonic: NSTA
+
+grpc:
+  client:
+    node-server:
+      address: static://localhost:8082
+      negotiation-type: plaintext

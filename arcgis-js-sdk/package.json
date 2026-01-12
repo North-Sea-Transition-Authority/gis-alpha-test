@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "proto-gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=generated ../src/main/proto/ArcGisJs.proto"
   },
   "type": "module",
   "dependencies": {
@@ -11,8 +12,11 @@
     "@terraformer/arcgis": "^2.1.2"
   },
   "devDependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
     "@types/node": "^24.5.2",
     "@types/terraformer__arcgis": "^2.0.5",
+    "express": "^5.2.1",
     "typescript": "^5.9.2",
     "tsx": "^4.20.6",
     "vitest": "^3.2.4"

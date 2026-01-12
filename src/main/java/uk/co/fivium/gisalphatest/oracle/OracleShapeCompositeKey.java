@@ -11,6 +11,14 @@ public class OracleShapeCompositeKey implements Serializable {
   private Integer shapeSidId;
   private String testCase;
 
+  public OracleShapeCompositeKey(Integer shapeSidId, String testCase) {
+    this.shapeSidId = shapeSidId;
+    this.testCase = testCase;
+  }
+
+  public OracleShapeCompositeKey() {
+  }
+
   public Integer getShapeSidId() {
     return shapeSidId;
   }

@@ -46,3 +46,6 @@ node_modules
 /src/main/resources/public/assets/static/
 /src/main/resources/templates/fds/
 /src/main/resources/public/assets/html5shiv/html5shiv.min.js
+
+### Proto Generation ###
+/arcgis-js-sdk/generated/*

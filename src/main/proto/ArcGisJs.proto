@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+option java_multiple_files = true;
+option java_package = "com.example.grpc";
+option java_outer_classname = "ArcGisServiceProto";
+
+service ArcGisService {
+  rpc convertGeoJsonLineToEsriJsonLine (GeoJsonRequest) returns (EsriJsonResponse) {};
+  rpc buildPolygon (BuildPolygonRequest) returns (EsriJsonResponse) {};
+}
+
+message GeoJsonRequest {
+  string geoJsonString = 1;
+}
+
+message EsriJsonResponse {
+  string esriJsonString = 1;
+}
+
+message BuildPolygonRequest {
+  repeated string esriJsonLineStrings = 1;
+  int32 srs = 2;
+}

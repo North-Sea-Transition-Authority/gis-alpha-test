@@ -1,0 +1,194 @@
+
+package uk.co.fivium.gisalphatest.migration;
+
+import static uk.co.fivium.gisalphatest.migration.Srs.fromOracleName;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisalphatest.feature.Feature;
+import uk.co.fivium.gisalphatest.feature.FeatureRepository;
+import uk.co.fivium.gisalphatest.feature.FeatureService;
+import uk.co.fivium.gisalphatest.feature.FeatureType;
+import uk.co.fivium.gisalphatest.feature.Line;
+import uk.co.fivium.gisalphatest.feature.LineNavigationType;
+import uk.co.fivium.gisalphatest.feature.LineRepository;
+import uk.co.fivium.gisalphatest.feature.Polygon;
+import uk.co.fivium.gisalphatest.feature.PolygonRepository;
+import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
+import uk.co.fivium.gisalphatest.oracle.OracleBoundaryLine;
+import uk.co.fivium.gisalphatest.oracle.OracleService;
+import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
+
+@Service
+public class MigrationService {
+  private static final boolean useGrpc = true;
+
+  private final LineRepository lineRepository;
+  private final PolygonRepository polygonRepository;
+  private final FeatureRepository featureRepository;
+
+  private final OracleService oracleService;
+  private final FeatureService featureService;
+
+  private final MigrationRestApiService migrationRestApiService;
+  private final GrpcClientService grpcClientService;
+
+  MigrationService(
+      LineRepository lineRepository,
+      PolygonRepository polygonRepository,
+      FeatureRepository featureRepository,
+      OracleService oracleService, FeatureService featureService,
+      MigrationRestApiService migrationRestApiService,
+      GrpcClientService grpcClientService
+  ) {
+    this.lineRepository = lineRepository;
+    this.polygonRepository = polygonRepository;
+    this.featureRepository = featureRepository;
+    this.oracleService = oracleService;
+    this.featureService = featureService;
+    this.migrationRestApiService = migrationRestApiService;
+    this.grpcClientService = grpcClientService;
+  }
+
+  @Transactional
+  public void migrate(Collection<OracleShapeCompositeKey> ids) {
+
+    //Added this to make testing on local dev easier
+    featureService.deleteAll();
+
+    var entityBackedOracleShapes = oracleService.getEntityBackedOracleShapes(ids);
+
+    for (var entityBackedShape : entityBackedOracleShapes) {
+      var newFeature = migrateFeature(entityBackedShape);
+
+      Map<Polygon, List<Line>> polygonToLine = new HashMap<>();
+
+      for (var polygonAndBoundary : entityBackedShape.polygonToBoundary().entrySet()) {
+        var oraclePolygon = polygonAndBoundary.getKey();
+        var oracleBoundaries = polygonAndBoundary.getValue();
+
+        var newPolygon = migratePolygon(
+            oraclePolygon.getPolygonSidId(),
+            newFeature,
+            Map.of() //TODO: Set attributes
+        );
+
+        List<Line> newLines = new ArrayList<>();
+
+        for (var oracleBoundary : oracleBoundaries) {
+          for (var oracleLine : entityBackedShape.boundaryToLine().get(oracleBoundary)) {
+
+            var ringNumber = oracleBoundaries.indexOf(oracleBoundary);
+            var ringConnectionOrder = oracleLine.getConnectionOrder().intValue();
+
+
+            var newLine = migrateLine(
+                newPolygon,
+                oracleLine,
+                ringNumber,
+                ringConnectionOrder,
+                oracleLine.getLineNavigationType()
+            );
+
+            newLines.add(newLine);
+          }
+        }
+
+        polygonToLine.put(newPolygon, newLines);
+
+      }
+
+      featureRepository.save(newFeature);
+      for (var entry : polygonToLine.entrySet()) {
+        var polygon = entry.getKey();
+        polygonRepository.save(polygon);
+
+        var lines = entry.getValue();
+        lineRepository.saveAll(lines);
+      }
+    }
+  }
+
+  private Feature migrateFeature(EntityBackedOracleShape entityBackedShape) {
+    var newFeature = new Feature();
+    newFeature.setShapeSidId(entityBackedShape.shape().getShapeSidId());
+    newFeature.setFeatureName(entityBackedShape.shape().getShapeName());
+    newFeature.setTestCase(entityBackedShape.shape().getTestCase());
+    newFeature.setSrs(fromOracleName(entityBackedShape.shape().getShapeSrs()).getValue());
+
+    newFeature.setType(FeatureType.POLYGON);
+
+    var parentShapeId = entityBackedShape.shape().getParentShapeId();
+    if (parentShapeId  != null) {
+      var parentId = featureRepository.findAllByShapeSidId(parentShapeId)
+          .stream()
+          .filter(feature -> feature.getParentFeatureId() == null)
+          .map(Feature::getId)
+          .findFirst()
+          .orElse(null);
+      newFeature.setParentFeatureId(parentId);
+    }
+
+    newFeature.setFeatureArea(null);
+    return newFeature;
+  }
+
+  private Polygon migratePolygon(
+      Integer polygonSidId,
+      Feature feature,
+      Map<String, Object> attributes
+  ) {
+    var polygon = new Polygon();
+    polygon.setId(polygonSidId);
+    polygon.setAttributes(attributes);
+    polygon.setFeature(feature);
+    return polygon;
+  }
+
+  private Line migrateLine(
+      Polygon polygon,
+      OracleBoundaryLine oracleBoundaryLine,
+      Integer ringNumber,
+      Integer connectionOrder,
+      LineNavigationType lineNavigationType
+  ) {
+
+    var line = new Line();
+    line.setId(oracleBoundaryLine.getLineSidId().intValue());
+    line.setAttributes(Map.of()); //TODO: Set attributes
+    line.setPolygon(polygon);
+    line.setNavigationType(lineNavigationType);
+    line.setBoundarySidId(oracleBoundaryLine.getBoundarySidId().intValue());
+
+    if (useGrpc) {
+      // convert geoJson to esriJson using ArcGis JS SDK via gRPC
+
+      String esriJson = switch (lineNavigationType) {
+        case LOXODROME -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson());
+        case GEODESIC -> null;
+        case CARTESIAN -> null;
+      };
+
+      line.setLineJson(esriJson);
+    } else {
+      // convert geoJson to esriJson using ArcGis JS SDK via rest api
+
+      String esriJson = switch (lineNavigationType) {
+        case LOXODROME -> migrationRestApiService.geoJsonLineToEsriJsonLine(oracleBoundaryLine.getLineGeojson());
+        case GEODESIC -> null;
+        case CARTESIAN -> null;
+      };
+
+      line.setLineJson(esriJson);
+    }
+
+    line.setRingNumber(ringNumber);
+    line.setRingConnectionOrder(connectionOrder);
+    return line;
+  }
+}

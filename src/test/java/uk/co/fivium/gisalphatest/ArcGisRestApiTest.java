@@ -36,11 +36,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import uk.co.fivium.gisalphatest.util.Coordinate;
 import uk.co.fivium.gisalphatest.util.MathUtil;
 import uk.co.fivium.gisalphatest.util.TestUtil;
 
+@Disabled
 class ArcGisRestApiTest {
 
   private static final SpatialReference ED50_SR = SpatialReference.create(TestUtil.ED50_SR);

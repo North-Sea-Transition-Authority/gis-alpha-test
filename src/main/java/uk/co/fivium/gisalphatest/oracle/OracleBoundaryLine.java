@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import uk.co.fivium.gisalphatest.feature.LineNavigationType;
 
 @Entity
 @Table(name = "GIS_ALPHA_BOUNDARY_LINES")

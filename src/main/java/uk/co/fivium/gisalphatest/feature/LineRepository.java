@@ -1,10 +1,10 @@
 package uk.co.fivium.gisalphatest.feature;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.ListCrudRepository;
 
-interface LineRepository extends CrudRepository<Line, UUID> {
+public interface LineRepository extends ListCrudRepository<Line, UUID> {
 
-  Collection<Line> findAllByPolygon(Polygon polygon);
+  List<Line> findAllByPolygon(Polygon polygon);
 }

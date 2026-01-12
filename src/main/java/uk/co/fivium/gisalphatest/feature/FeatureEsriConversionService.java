@@ -1,7 +1,5 @@
 package uk.co.fivium.gisalphatest.feature;
 
-import static uk.co.fivium.gisalphatest.util.EsriGeometryApiUtil.appendRingToPolygon;
-
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.ogc.OGCGeometry;
 import java.util.ArrayList;
@@ -14,10 +12,11 @@ public class FeatureEsriConversionService {
 
   private final LineRepository lineRepository;
 
-  FeatureEsriConversionService(LineRepository lineRepository) {
+  FeatureEsriConversionService(
+      LineRepository lineRepository
+  ) {
     this.lineRepository = lineRepository;
   }
-
   /**
    * After updating the model in GISA-32 this no longer works, and we are not going to update it as we will exclusively use the
    * arc gis js sdk
