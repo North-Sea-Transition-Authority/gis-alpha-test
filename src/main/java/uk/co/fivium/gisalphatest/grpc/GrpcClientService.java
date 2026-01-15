@@ -4,12 +4,20 @@ import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
 import com.example.grpc.EsriJsonPolygon;
 import com.example.grpc.EsriJsonResponse;
+import com.example.grpc.ExplodePolygonRequest;
+import com.example.grpc.ExplodePolygonResponse;
+import com.example.grpc.FindParentLineRequest;
 import com.example.grpc.GeoJsonRequest;
+import com.example.grpc.LineParent;
+import com.example.grpc.ReconstructedLine;
 import com.example.grpc.SplitPolygonRequest;
 import com.example.grpc.SplitPolygonResponse;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
+import uk.co.fivium.gisalphatest.feature.Line;
 
 @Service
 public class GrpcClientService {
@@ -67,5 +75,49 @@ public class GrpcClientService {
         .stream()
         .map(EsriJsonPolygon::getEsriJsonPolygon)
         .toList();
+  }
+
+  /**
+   * Create a polyline for each coordinate pair in the polygon.
+   * @param polygon Input polygon
+   * @return A list of esriJson polylines for every coordinate pair of the input. These can be union together to reconstruct
+   * the original input.
+   */
+  public List<String> explodePolygon(String polygon) {
+    var request = ExplodePolygonRequest.newBuilder()
+        .setTarget(EsriJsonPolygon.newBuilder().setEsriJsonPolygon(polygon))
+        .build();
+    ExplodePolygonResponse response = arcgisClient.explodePolygon(request);
+    return response.getEsriJsonLinesList();
+  }
+
+  /**
+   * Find which lines are contained by other lines
+   * @param parentLines Line entities that will contain the contained lines
+   * @param containedLines Child lines that are contained by the parentLines
+   * @return A map of contained lines esri json to the id of the parent line that contains it.
+   */
+  public FindParentLineResponse findParentLine(List<Line> parentLines, List<String> containedLines) {
+    var requestBuilder = FindParentLineRequest.newBuilder();
+
+    for (Line line : parentLines) {
+      requestBuilder.addParents(LineParent.newBuilder()
+          .setId(line.getId())
+          .setEsriJsonPolyline(line.getLineJson())
+          .build());
+    }
+    for (String polyline : containedLines) {
+      requestBuilder.addChildren(polyline);
+    }
+
+    var response = arcgisClient.findParentLine(requestBuilder.build());
+
+    Map<String, Integer> polylineToParentLineId = new HashMap<>();
+
+    for (ReconstructedLine line : response.getLinesList()) {
+      polylineToParentLineId.put(line.getEsriJsonPolyline(), line.getParentId());
+    }
+
+    return new FindParentLineResponse(polylineToParentLineId, response.getOrphanedChildrenJsonList());
   }
 }

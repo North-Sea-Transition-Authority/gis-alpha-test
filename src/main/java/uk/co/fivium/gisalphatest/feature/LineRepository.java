@@ -7,4 +7,6 @@ import org.springframework.data.repository.ListCrudRepository;
 public interface LineRepository extends ListCrudRepository<Line, UUID> {
 
   List<Line> findAllByPolygon(Polygon polygon);
+
+  List<Line> findAllByPolygonIn(List<Polygon> polygons);
 }

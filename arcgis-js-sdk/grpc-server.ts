@@ -5,10 +5,13 @@ import * as Terraformer from "@terraformer/arcgis";
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import type {ProtoGrpcType} from "./generated/ArcGisJs.ts";
 import type {ArcGisServiceHandlers} from "./generated/arcgisjs/ArcGisService.ts";
-import Polygon from "@arcgis/core/geometry/Polygon";
+import Polygon from "@arcgis/core/geometry/Polygon.js";
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator";
+
+import {findParentLine} from './handlers/lineTools.js';
+import {explodePolygon} from './handlers/polygonTools.js';
 
 const PROTO_PATH = path.join("../src/main/proto", 'ArcGisJs.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -81,7 +84,9 @@ function main() {
   server.addService(arcGisJsProto.ArcGisService.service, {
     convertGeoJsonLineToEsriJsonLine: convertGeoJsonLineToEsriJsonLine,
     buildPolygon: buildPolygon,
-    splitPolygon: splitPolygon
+    splitPolygon: splitPolygon,
+    explodePolygon: explodePolygon,
+    findParentLine: findParentLine
   });
 
   const bindAddress = '0.0.0.0:8082';

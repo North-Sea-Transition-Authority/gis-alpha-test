@@ -10,6 +10,8 @@ service ArcGisService {
   rpc convertGeoJsonLineToEsriJsonLine (GeoJsonRequest) returns (EsriJsonResponse) {};
   rpc buildPolygon (BuildPolygonRequest) returns (EsriJsonResponse) {};
   rpc splitPolygon (SplitPolygonRequest) returns (SplitPolygonResponse) {};
+  rpc explodePolygon (ExplodePolygonRequest) returns (ExplodePolygonResponse) {};
+  rpc findParentLine (FindParentLineRequest) returns (FindParentLineResponse) {};
 }
 
 message GeoJsonRequest {
@@ -38,4 +40,32 @@ message SplitPolygonRequest {
 
 message SplitPolygonResponse {
   repeated EsriJsonPolygon polygons = 1;
+}
+
+message ExplodePolygonRequest {
+  EsriJsonPolygon target = 1;
+}
+
+message ExplodePolygonResponse {
+  repeated string esriJsonLines = 1;
+}
+
+message LineParent {
+  int32 id = 1;
+  string esriJsonPolyline = 2;
+}
+
+message FindParentLineRequest {
+  repeated LineParent parents = 1;
+  repeated string children = 2;
+}
+
+message ReconstructedLine {
+  int32 parentId = 1;
+  string esriJsonPolyline = 2;
+}
+
+message FindParentLineResponse {
+  repeated ReconstructedLine lines = 1;
+  repeated string orphanedChildrenJson = 2;
 }
