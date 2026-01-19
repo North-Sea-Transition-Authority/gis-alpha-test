@@ -33,6 +33,8 @@ public class MigrationTestController {
         )
     );
 
+    migrationService.verifyAllChildFeaturesAreInsideParentFeatures();
+
     //Validate by building all the polygons based on the esri json lines
     polygonService.getPolygonsAsEsriJson(23922223, "GISA-27", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(23922738, "GISA-27", false).forEach(System.out::println);

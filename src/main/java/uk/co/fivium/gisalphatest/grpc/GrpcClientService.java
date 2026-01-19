@@ -4,6 +4,8 @@ import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
 import com.example.grpc.CalculateAreaResponse;
 import com.example.grpc.CalculatePolygonAreaRequest;
+import com.example.grpc.CheckParentContainsChildRequest;
+import com.example.grpc.CheckParentContainsChildResponse;
 import com.example.grpc.DensifyLoxodromeLineRequest;
 import com.example.grpc.DensifyLoxodromeLineResponse;
 import com.example.grpc.EsriJsonPolygon;
@@ -165,5 +167,15 @@ public class GrpcClientService {
     }
 
     return new FindParentLineResponse(polylineToParentLineId, response.getOrphanedChildrenJsonList());
+  }
+
+  public boolean checkParentContainsChild(String parentPolygon, String childPolygon) {
+    var request = CheckParentContainsChildRequest.newBuilder()
+        .setParentPolygon(parentPolygon)
+        .setChildPolygon(childPolygon)
+        .build();
+
+    CheckParentContainsChildResponse response = arcgisClient.checkParentContainsChild(request);
+    return response.getIsChildContainedByParent();
   }
 }

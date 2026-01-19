@@ -10,4 +10,6 @@ public interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
   Optional<Feature> findByShapeSidIdAndTestCase(Integer shapeSidId, String testCase);
 
   List<Feature> findAllByShapeSidId(Integer shapeSidId);
+
+  List<Feature> findAllByParentFeatureIdIsNotNull();
 }

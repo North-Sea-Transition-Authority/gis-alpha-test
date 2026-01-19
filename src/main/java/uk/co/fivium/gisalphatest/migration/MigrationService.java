@@ -125,6 +125,23 @@ public class MigrationService {
     }
   }
 
+  public void verifyAllChildFeaturesAreInsideParentFeatures() {
+    var childFeatures = featureRepository.findAllByParentFeatureIdIsNotNull();
+
+    for(var child: childFeatures) {
+      var parent = featureRepository.findById(child.getParentFeatureId())
+          .orElseThrow(() -> new IllegalStateException("Parent feature not found for child %s".formatted(child.getId())));
+      var childJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(child, false));
+      var parentJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(parent, false));
+
+      if (!grpcClientService.checkParentContainsChild(parentJson, childJson)) {
+        throw new IllegalStateException("Child %s not contained by parent %s".formatted(child.getId(), parent.getId()));
+      }
+
+    }
+    System.out.println("All children features are contained by parent features");
+  }
+
   @Transactional
   public void migrateFeatureAreas() {
     var features = featureRepository.findAll();

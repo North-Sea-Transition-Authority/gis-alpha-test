@@ -31,6 +31,10 @@ public class FeatureService {
 
   public EntityBackedFeature getEntityBackedFeature(Integer shapeSidId, String testCase) {
     var feature = getFeature(shapeSidId, testCase);
+    return getEntityBackedFeature(feature);
+  }
+
+  public EntityBackedFeature getEntityBackedFeature(Feature feature) {
     var polygons = polygonRepository.findAllByFeature(feature);
 
     Map<Polygon, List<Line>> polygonToLines = new HashMap<>();

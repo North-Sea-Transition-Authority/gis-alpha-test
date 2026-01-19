@@ -30,9 +30,24 @@ public class PolygonService {
    * @return a list of EsriJSON polygons for the given feature
    */
   public List<String> getPolygonsAsEsriJson(Integer shapeSidId, String testCase, boolean densifyLoxodromeLines) {
-    List<String> polygonsAsEsriJson = new ArrayList<>();
-
     var entityBackedFeature = featureService.getEntityBackedFeature(shapeSidId, testCase);
+    return getPolygonsAsEsriJson(entityBackedFeature, densifyLoxodromeLines);
+  }
+
+  /**
+   * Generates all the EsriJSON polygons for a given feature.
+   *
+   * @param feature the feature whose polygons will be built as EsriJSON.
+   * @param densifyLoxodromeLines true if the loxodrome lines on the feature should be densified before the polygon is built.
+   * @return a list of EsriJSON polygons for the given feature
+   */
+  public List<String> getPolygonsAsEsriJson(Feature feature, boolean densifyLoxodromeLines) {
+    var entityBackedFeature = featureService.getEntityBackedFeature(feature);
+    return getPolygonsAsEsriJson(entityBackedFeature, densifyLoxodromeLines);
+  }
+
+  private List<String> getPolygonsAsEsriJson(EntityBackedFeature entityBackedFeature, boolean densifyLoxodromeLines) {
+    List<String> polygonsAsEsriJson = new ArrayList<>();
     var srs = entityBackedFeature.feature().getSrs();
 
     for (var entry : entityBackedFeature.polygonToLines().entrySet()) {

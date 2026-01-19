@@ -15,6 +15,7 @@ service ArcGisService {
   rpc densifyLoxodromePolyline (DensifyLoxodromeLineRequest) returns (DensifyLoxodromeLineResponse) {};
   rpc unionPolygons (UnionPolygonsRequest) returns (UnionPolygonsResponse) {};
   rpc calculatePolygonArea (CalculatePolygonAreaRequest) returns (CalculateAreaResponse) {};
+  rpc checkParentContainsChild (CheckParentContainsChildRequest) returns (CheckParentContainsChildResponse) {};
 }
 
 message GeoJsonRequest {
@@ -95,4 +96,13 @@ message CalculatePolygonAreaRequest {
 
 message CalculateAreaResponse {
   double area = 1;
+}
+
+message CheckParentContainsChildRequest {
+  string parentPolygon = 1;
+  string childPolygon = 2;
+}
+
+message CheckParentContainsChildResponse {
+  bool isChildContainedByParent = 1;
 }
