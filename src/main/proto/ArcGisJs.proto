@@ -12,6 +12,9 @@ service ArcGisService {
   rpc splitPolygon (SplitPolygonRequest) returns (SplitPolygonResponse) {};
   rpc explodePolygon (ExplodePolygonRequest) returns (ExplodePolygonResponse) {};
   rpc findParentLine (FindParentLineRequest) returns (FindParentLineResponse) {};
+  rpc densifyLoxodromePolyline (DensifyLoxodromeLineRequest) returns (DensifyLoxodromeLineResponse) {};
+  rpc unionPolygons (UnionPolygonsRequest) returns (UnionPolygonsResponse) {};
+  rpc calculatePolygonArea (CalculatePolygonAreaRequest) returns (CalculateAreaResponse) {};
 }
 
 message GeoJsonRequest {
@@ -68,4 +71,28 @@ message ReconstructedLine {
 message FindParentLineResponse {
   repeated ReconstructedLine lines = 1;
   repeated string orphanedChildrenJson = 2;
+}
+
+message DensifyLoxodromeLineRequest {
+  string esriJsonPolyline = 1;
+}
+
+message DensifyLoxodromeLineResponse {
+  string esriJsonPolyline = 1;
+}
+
+message UnionPolygonsRequest {
+  repeated string esriJsonPolygons = 1;
+}
+
+message UnionPolygonsResponse {
+  string esriJsonPolygon = 1;
+}
+
+message CalculatePolygonAreaRequest {
+  string esriJsonPolygon = 1;
+}
+
+message CalculateAreaResponse {
+  double area = 1;
 }

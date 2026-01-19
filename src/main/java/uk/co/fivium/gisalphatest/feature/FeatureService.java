@@ -29,23 +29,27 @@ public class FeatureService {
     this.entityManager = entityManager;
   }
 
-  public List<EntityBackedFeature> getEntityBackedFeatures(Integer shapeSidId, String testCase) {
-    var entityBackedFeatures = new ArrayList<EntityBackedFeature>();
-    var features = featureRepository.findAllByShapeSidIdAndTestCase(shapeSidId, testCase);
-    for(var feature : features) {
-      var polygons = polygonRepository.findAllByFeature(feature);
+  public EntityBackedFeature getEntityBackedFeature(Integer shapeSidId, String testCase) {
+    var feature = getFeature(shapeSidId, testCase);
+    var polygons = polygonRepository.findAllByFeature(feature);
 
-      Map<Polygon, List<Line>> polygonToLines = new HashMap<>();
+    Map<Polygon, List<Line>> polygonToLines = new HashMap<>();
 
-      for(var polygon : polygons) {
-        polygonToLines.put(polygon, lineRepository.findAllByPolygon(polygon));
-      }
-      entityBackedFeatures.add(new EntityBackedFeature(
-          feature,
-          polygonToLines
-      ));
+    for (var polygon : polygons) {
+      polygonToLines.put(polygon, lineRepository.findAllByPolygon(polygon));
     }
-    return entityBackedFeatures;
+
+    return
+        new EntityBackedFeature(
+            feature,
+            polygonToLines
+        );
+  }
+
+  public Feature getFeature(Integer shapeSidId, String testCase) {
+    return featureRepository.findByShapeSidIdAndTestCase(shapeSidId, testCase)
+        .orElseThrow(() -> new IllegalStateException("Feature not found for shapeSidId %s test case %s"
+            .formatted(shapeSidId, testCase)));
   }
 
   @Transactional

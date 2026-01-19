@@ -28,6 +28,8 @@ public class Feature {
 
   private BigDecimal featureArea;
 
+  private BigDecimal areaDifference;
+
   private UUID parentFeatureId;
 
   private String testCase;
@@ -74,6 +76,14 @@ public class Feature {
 
   public void setFeatureArea(BigDecimal featureArea) {
     this.featureArea = featureArea;
+  }
+
+  public BigDecimal getAreaDifference() {
+    return areaDifference;
+  }
+
+  public void setAreaDifference(BigDecimal areaDifference) {
+    this.areaDifference = areaDifference;
   }
 
   public UUID getParentFeatureId() {

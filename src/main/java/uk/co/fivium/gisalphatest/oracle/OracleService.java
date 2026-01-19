@@ -70,6 +70,12 @@ public class OracleService {
     return entityBackedOracleShapes;
   }
 
+  public double getOracleShapeArea(Integer shapeSidId, String testCase) {
+    return oracleShapeRepository.findById(new OracleShapeCompositeKey(shapeSidId, testCase))
+        .map(OracleShape::getShareAreaM2).
+        orElse((double) 0);
+  }
+
   private List<OracleShapePolygon> getPolygonsByShapeSidId(Integer shapeSidId) {
     return oraclePolygonRepository.findAllByShapeSidId(shapeSidId);
   }

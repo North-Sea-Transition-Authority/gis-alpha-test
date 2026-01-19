@@ -3,11 +3,14 @@ package uk.co.fivium.gisalphatest.migration;
 
 import static uk.co.fivium.gisalphatest.migration.Srs.fromOracleName;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.feature.Feature;
@@ -19,6 +22,7 @@ import uk.co.fivium.gisalphatest.feature.LineNavigationType;
 import uk.co.fivium.gisalphatest.feature.LineRepository;
 import uk.co.fivium.gisalphatest.feature.Polygon;
 import uk.co.fivium.gisalphatest.feature.PolygonRepository;
+import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 import uk.co.fivium.gisalphatest.oracle.OracleBoundaryLine;
 import uk.co.fivium.gisalphatest.oracle.OracleService;
@@ -26,6 +30,8 @@ import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Service
 public class MigrationService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationService.class);
+
   private static final boolean useGrpc = true;
 
   private final LineRepository lineRepository;
@@ -34,6 +40,7 @@ public class MigrationService {
 
   private final OracleService oracleService;
   private final FeatureService featureService;
+  private final PolygonService polygonService;
 
   private final MigrationRestApiService migrationRestApiService;
   private final GrpcClientService grpcClientService;
@@ -42,7 +49,9 @@ public class MigrationService {
       LineRepository lineRepository,
       PolygonRepository polygonRepository,
       FeatureRepository featureRepository,
-      OracleService oracleService, FeatureService featureService,
+      OracleService oracleService,
+      FeatureService featureService,
+      PolygonService polygonService,
       MigrationRestApiService migrationRestApiService,
       GrpcClientService grpcClientService
   ) {
@@ -51,6 +60,7 @@ public class MigrationService {
     this.featureRepository = featureRepository;
     this.oracleService = oracleService;
     this.featureService = featureService;
+    this.polygonService = polygonService;
     this.migrationRestApiService = migrationRestApiService;
     this.grpcClientService = grpcClientService;
   }
@@ -115,6 +125,34 @@ public class MigrationService {
     }
   }
 
+  @Transactional
+  public void migrateFeatureAreas() {
+    var features = featureRepository.findAll();
+
+    features.forEach(feature -> {
+      var shapeSidId = feature.getShapeSidId();
+      var testCase = feature.getTestCase();
+
+      var jsonPolygons = polygonService.getPolygonsAsEsriJson(shapeSidId, testCase, true);
+      var combinedPolygon = grpcClientService.unionPolygons(jsonPolygons);
+      var area = grpcClientService.calculatePolygonArea(combinedPolygon);
+      feature.setFeatureArea(new BigDecimal(area));
+
+      var oracleArea = oracleService.getOracleShapeArea(shapeSidId, testCase);
+      // bigger number means the new area is bigger than the oracle area
+      var difference = area - oracleArea;
+      feature.setAreaDifference(new BigDecimal(difference));
+      if (Math.abs(difference) >= 20) {
+        LOGGER.warn("Shape id {} has new area greater than 20 metres squared different to oracle. Diffference: {} ",
+            feature.getId(),
+            difference
+        );
+      }
+    });
+
+    featureRepository.saveAll(features);
+  }
+
   private Feature migrateFeature(EntityBackedOracleShape entityBackedShape) {
     var newFeature = new Feature();
     newFeature.setShapeSidId(entityBackedShape.shape().getShapeSidId());
@@ -125,7 +163,7 @@ public class MigrationService {
     newFeature.setType(FeatureType.POLYGON);
 
     var parentShapeId = entityBackedShape.shape().getParentShapeId();
-    if (parentShapeId  != null) {
+    if (parentShapeId != null) {
       var parentId = featureRepository.findAllByShapeSidId(parentShapeId)
           .stream()
           .filter(feature -> feature.getParentFeatureId() == null)

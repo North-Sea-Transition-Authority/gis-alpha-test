@@ -2,6 +2,10 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
+import com.example.grpc.CalculateAreaResponse;
+import com.example.grpc.CalculatePolygonAreaRequest;
+import com.example.grpc.DensifyLoxodromeLineRequest;
+import com.example.grpc.DensifyLoxodromeLineResponse;
 import com.example.grpc.EsriJsonPolygon;
 import com.example.grpc.EsriJsonResponse;
 import com.example.grpc.ExplodePolygonRequest;
@@ -12,6 +16,8 @@ import com.example.grpc.LineParent;
 import com.example.grpc.ReconstructedLine;
 import com.example.grpc.SplitPolygonRequest;
 import com.example.grpc.SplitPolygonResponse;
+import com.example.grpc.UnionPolygonsRequest;
+import com.example.grpc.UnionPolygonsResponse;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +68,46 @@ public class GrpcClientService {
 
     EsriJsonResponse response = arcgisClient.buildPolygon(request);
     return response.getEsriJsonString();
+  }
+
+  /**
+   * Densifies an EsriJSON loxodrome polyline
+   * @param polyline an EsriJSON loxodrome polyline
+   * @return a densified EsriJSON polyline
+   */
+  public String densifyLoxodromePolyline(String polyline) {
+    var request = DensifyLoxodromeLineRequest.newBuilder()
+        .setEsriJsonPolyline(polyline)
+        .build();
+
+    DensifyLoxodromeLineResponse response = arcgisClient.densifyLoxodromePolyline(request);
+    return response.getEsriJsonPolyline();
+  }
+
+  /**
+   * Takes a list of EsriJSON polygons and combines time into a single shape.
+   * @param polygons a list of EsriJSON polygons
+   * @return an EsriJSON polygon or "shape" that is made up of all the inputted polygons.
+   */
+  public String unionPolygons(List<String> polygons) {
+    var request = UnionPolygonsRequest.newBuilder()
+        .addAllEsriJsonPolygons(polygons)
+        .build();
+    UnionPolygonsResponse response = arcgisClient.unionPolygons(request);
+    return response.getEsriJsonPolygon();
+  }
+
+  /**
+   * Takes an EsriJSON polygon and returns the area
+   * @param esriPolygon an EsriJSON polygon
+   * @return the area in metres squared
+   */
+  public double calculatePolygonArea(String esriPolygon) {
+    var request = CalculatePolygonAreaRequest.newBuilder()
+        .setEsriJsonPolygon(esriPolygon)
+        .build();
+    CalculateAreaResponse response = arcgisClient.calculatePolygonArea(request);
+    return response.getArea();
   }
 
   public List<String> splitPolygon(String polygon, String cutter) {

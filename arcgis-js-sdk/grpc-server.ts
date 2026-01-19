@@ -9,6 +9,9 @@ import Polygon from "@arcgis/core/geometry/Polygon.js";
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator";
+import {unionPolygons} from "./handlers/union-polygons";
+import {calculatePolygonArea} from "./handlers/calculate-polygon-area";
+import {densifyLoxodromePolyline} from "./handlers/densify-loxodrome-polyline";
 
 import {findParentLine} from './handlers/lineTools.js';
 import {explodePolygon} from './handlers/polygonTools.js';
@@ -86,7 +89,10 @@ function main() {
     buildPolygon: buildPolygon,
     splitPolygon: splitPolygon,
     explodePolygon: explodePolygon,
-    findParentLine: findParentLine
+    findParentLine: findParentLine,
+    densifyLoxodromePolyline: densifyLoxodromePolyline,
+    unionPolygons: unionPolygons,
+    calculatePolygonArea: calculatePolygonArea,
   });
 
   const bindAddress = '0.0.0.0:8082';

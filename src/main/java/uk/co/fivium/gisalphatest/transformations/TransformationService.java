@@ -33,9 +33,8 @@ public class TransformationService {
     this.lineRepository = lineRepository;
   }
 
-  List<String> splitPolygon(Feature target,
-                            String cutterLineEsriJson) {
-    var esriJsonPolygon = polygonService.getPolygonsAsEsriJson(target.getShapeSidId(), target.getTestCase()).getFirst();
+  List<String> splitPolygon(Feature target, String cutterLineEsriJson) {
+    var esriJsonPolygon = polygonService.getPolygonsAsEsriJson(target.getShapeSidId(), target.getTestCase(), false).getFirst();
 
     System.out.println("target polygon:");
     System.out.println(esriJsonPolygon);
