@@ -53,4 +53,26 @@ public class SplitTestController {
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  @GetMapping("/split2")
+  public ModelAndView splitPolygon2() {
+    migrationService.migrate(
+        List.of(
+            new OracleShapeCompositeKey(57015719, "GISA-30")
+        )
+    );
+    var migratedPolygon = featureRepository.findAllByShapeSidId(57015719).getFirst();
+
+    String geoJsonSplitLine = oracleCutLineRepository.findByTestCase("GISA-30")
+        .get()
+        .getCutLineGeojson();
+
+    String esriJsonCutterLine = grpcClientService.convertLineToEsriJson(geoJsonSplitLine, migratedPolygon.getSrs(), false);
+    var result = splitService.splitPolygon(migratedPolygon, esriJsonCutterLine);
+
+    System.out.println("Results:");
+    result.forEach(System.out::println);
+
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }

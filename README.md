@@ -25,3 +25,7 @@ Run the gradle clean and build tasks to generate the java proto classes defined 
 
 (Alternatively you can run `npm run build-all` from the root directory to generate build the frontend and generate the proto for
 the front and backend.)
+
+### 5. Start the grpc server
+
+Go to `gis-alpha-test/arcgis-js-sdk` and right click `grpc-server.ts` then run.
