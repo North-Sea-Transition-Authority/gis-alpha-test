@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import 'LineWithStartAndEndPoint.proto';
+
+message GetStartAndEndPointsResponse {
+  repeated LineWithStartAndEndPoint lines = 1;
+}

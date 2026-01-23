@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import 'Point.proto';
+
+message LineWithStartAndEndPoint {
+  string lineId = 1;
+  Point startPoint = 2;
+  Point endPoint = 3;
+}

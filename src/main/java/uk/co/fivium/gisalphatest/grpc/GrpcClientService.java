@@ -1,5 +1,10 @@
 package uk.co.fivium.gisalphatest.grpc;
 
+import arcgisjs.GetStartAndEndPointsRequestOuterClass;
+import arcgisjs.LineWithIdOuterClass;
+import com.esri.core.geometry.Point;
+import arcgisjs.OrderedLineSegmentOuterClass;
+import arcgisjs.ValidatePolygonReconstructionRequestOuterClass;
 import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
 import com.example.grpc.CalculateAreaResponse;
@@ -23,9 +28,11 @@ import com.example.grpc.UnionPolygonsResponse;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.feature.Line;
+import uk.co.fivium.gisalphatest.transformations.LineWrapper;
 
 @Service
 public class GrpcClientService {
@@ -177,5 +184,61 @@ public class GrpcClientService {
 
     CheckParentContainsChildResponse response = arcgisClient.checkParentContainsChild(request);
     return response.getIsChildContainedByParent();
+  }
+
+  /**
+   * Find the start and end coordinates for each line.
+   * @param lines
+   * @return A list with a record containig the line entity plus the start and end points.
+   */
+  public List<LineWrapper> getLineStartAndEndpoints(List<Line> lines) {
+    //lines may not been persisted yet so they might not have an ID
+    Map<UUID, Line> tempIdToLine = new HashMap<>();
+    lines.forEach(line -> tempIdToLine.put(UUID.randomUUID(), line));
+
+    var linesWithId = tempIdToLine.entrySet().stream()
+        .map(entry -> LineWithIdOuterClass.LineWithId.newBuilder()
+            .setId(entry.getKey().toString())
+            .setPolyLineEsriJson(entry.getValue().getLineJson())
+            .build())
+        .toList();
+    var request = GetStartAndEndPointsRequestOuterClass.GetStartAndEndPointsRequest.newBuilder()
+        .addAllLines(linesWithId)
+        .build();
+
+    var response = arcgisClient.getStartAndEndPoints(request);
+
+    return response.getLinesList().stream()
+        .map(lineWithStartAndEndPoint -> {
+          var line = tempIdToLine.get(UUID.fromString(lineWithStartAndEndPoint.getLineId()));
+          Point startPoint = new Point(lineWithStartAndEndPoint.getStartPoint().getX(), lineWithStartAndEndPoint.getStartPoint().getY());
+          Point endPoint = new Point(lineWithStartAndEndPoint.getEndPoint().getX(), lineWithStartAndEndPoint.getEndPoint().getY());
+          return LineWrapper.fromNodeResponse(line, startPoint, endPoint);
+        })
+        .toList();
+  }
+
+  /**
+   * Validate the line ordering is correct and can be used to construct a valid polygon.
+   * Validate the lines can form a polygon that is spatially equal to teh original polygon.
+   * @param lines Lines used to construct a processed polygon.
+   * @param originalPolygonEsriJson Original polygon before processing.
+   * @return True if line ordering is correct and processed lines can form a spatially equal polygon to the original.
+   */
+  public boolean validatePolygonReconstruction(List<Line> lines, String originalPolygonEsriJson) {
+    var orderedLineSegments = lines.stream()
+        .map(line -> OrderedLineSegmentOuterClass.OrderedLineSegment.newBuilder()
+            .setEsriJsonPolyline(line.getLineJson())
+            .setRingNumber(line.getRingNumber())
+            .setConnectionOrder(line.getRingConnectionOrder())
+            .build())
+        .toList();
+    var request = ValidatePolygonReconstructionRequestOuterClass.ValidatePolygonReconstructionRequest.newBuilder()
+        .addAllLines(orderedLineSegments)
+        .setOriginalPolygonEsriJson(originalPolygonEsriJson)
+        .build();
+
+    var response = arcgisClient.validatePolygonReconstruction(request);
+    return response.getIsValid();
   }
 }

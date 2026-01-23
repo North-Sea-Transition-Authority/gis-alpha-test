@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import "ordered_line_segment.proto";
+
+message ValidatePolygonReconstructionRequest {
+  repeated OrderedLineSegment lines = 1;
+  string originalPolygonEsriJson = 2;
+}

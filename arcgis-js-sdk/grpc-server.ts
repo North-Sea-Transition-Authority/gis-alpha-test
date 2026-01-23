@@ -16,6 +16,8 @@ import {densifyLoxodromePolyline} from "./handlers/densify-loxodrome-polyline";
 import {findParentLine} from './handlers/lineTools.js';
 import {explodePolygon} from './handlers/polygonTools.js';
 import {checkParentContainsChild} from './handlers/check-parent-contains-child';
+import {getStartAndEndPoints} from './handlers/get-start-and-end-points'
+import {validatePolygonReconstruction} from './handlers/validate-polygon-reconstruction.js';
 
 const PROTO_PATH = path.join("../src/main/proto", 'ArcGisJs.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
@@ -86,15 +88,17 @@ function main() {
   const server = new grpc.Server();
 
   server.addService(arcGisJsProto.ArcGisService.service, {
-    convertGeoJsonLineToEsriJsonLine: convertGeoJsonLineToEsriJsonLine,
-    buildPolygon: buildPolygon,
-    splitPolygon: splitPolygon,
-    explodePolygon: explodePolygon,
-    findParentLine: findParentLine,
-    densifyLoxodromePolyline: densifyLoxodromePolyline,
-    unionPolygons: unionPolygons,
-    calculatePolygonArea: calculatePolygonArea,
-    checkParentContainsChild: checkParentContainsChild,
+    convertGeoJsonLineToEsriJsonLine,
+    buildPolygon,
+    splitPolygon,
+    explodePolygon,
+    findParentLine,
+    densifyLoxodromePolyline,
+    unionPolygons,
+    calculatePolygonArea,
+    checkParentContainsChild,
+    getStartAndEndPoints,
+    validatePolygonReconstruction
   });
 
   const bindAddress = '0.0.0.0:8082';

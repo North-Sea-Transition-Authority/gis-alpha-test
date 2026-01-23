@@ -11,21 +11,21 @@ import uk.co.fivium.gisalphatest.oracle.OracleCutLineRepository;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Controller
-public class TransformationTestController {
+public class SplitTestController {
 
-  private final TransformationService transformationService;
+  private final SplitService splitService;
   private final FeatureRepository featureRepository;
   private final GrpcClientService grpcClientService;
   private final OracleCutLineRepository oracleCutLineRepository;
   private final MigrationService migrationService;
 
-  TransformationTestController(
-      TransformationService transformationService,
+  SplitTestController(
+      SplitService splitService,
       FeatureRepository featureRepository,
       GrpcClientService grpcClientService,
       OracleCutLineRepository oracleCutLineRepository,
       MigrationService migrationService) {
-    this.transformationService = transformationService;
+    this.splitService = splitService;
     this.featureRepository = featureRepository;
     this.grpcClientService = grpcClientService;
     this.oracleCutLineRepository = oracleCutLineRepository;
@@ -46,7 +46,7 @@ public class TransformationTestController {
         .getCutLineGeojson();
 
     String esriJsonCutterLine = grpcClientService.convertLineToEsriJson(geoJsonSplitLine, migratedPolygon.getSrs(), false);
-    var result = transformationService.splitPolygon(migratedPolygon, esriJsonCutterLine);
+    var result = splitService.splitPolygon(migratedPolygon, esriJsonCutterLine);
 
     System.out.println("Results:");
     result.forEach(System.out::println);
