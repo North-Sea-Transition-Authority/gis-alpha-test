@@ -18,6 +18,21 @@ import {explodePolygon} from './handlers/polygonTools.js';
 import {checkParentContainsChild} from './handlers/check-parent-contains-child';
 import {getStartAndEndPoints} from './handlers/get-start-and-end-points'
 import {validatePolygonReconstruction} from './handlers/validate-polygon-reconstruction.js';
+import esriConfig from "@arcgis/core/config.js";
+import express from "express";
+
+//We need to host a version of the ESRI CDN so the library can run offline.
+//https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
+//https://developers.arcgis.com/javascript/latest/working-with-assets/
+const assetApp = express();
+const ASSET_PORT = 3000;
+const assetFolder = path.resolve(process.cwd(), "public/assets");
+console.log(`[Asset Server] serving files in: ${assetFolder}`);
+assetApp.use("/assets", express.static(assetFolder));
+assetApp.listen(ASSET_PORT, () => {
+  console.log(`[Asset Server] Running at http://localhost:${ASSET_PORT}/assets`);
+});
+esriConfig.assetsPath = `http://localhost:${ASSET_PORT}/assets`;
 
 const PROTO_PATH = path.join("../src/main/proto", 'ArcGisJs.proto');
 const packageDefinition = protoLoader.loadSync(PROTO_PATH, {

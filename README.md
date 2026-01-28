@@ -17,7 +17,7 @@ npm install && npx gulp buildAll
 
 ### 3. Build the arcgis-js-sdk
 
-run `cd arcgis-js-sdk/ && npm install && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
+run `cd arcgis-js-sdk/ && npm install && npm run copy:core && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
 
 ### 4. Build the backend.
 

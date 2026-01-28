@@ -4,11 +4,12 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest run",
-    "proto-gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=generated ../src/main/proto/ArcGisJs.proto"
+    "proto-gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=generated ../src/main/proto/ArcGisJs.proto",
+    "copy:core": "cpx \"node_modules/@arcgis/core/assets/**/*.*\" ./public/assets"
   },
   "type": "module",
   "dependencies": {
-    "@arcgis/core": "^4.33.14",
+    "@arcgis/core": "4.34.8",
     "@terraformer/arcgis": "^2.1.2"
   },
   "devDependencies": {
@@ -16,6 +17,7 @@
     "@grpc/proto-loader": "^0.8.0",
     "@types/node": "^24.5.2",
     "@types/terraformer__arcgis": "^2.0.5",
+    "cpx2": "8.0.0",
     "express": "^5.2.1",
     "typescript": "^5.9.2",
     "tsx": "^4.20.6",

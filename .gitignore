@@ -49,3 +49,6 @@ node_modules
 
 ### Proto Generation ###
 /arcgis-js-sdk/generated/*
+
+### ArcGis JS offline libraries ###
+/arcgis-js-sdk/public/*
