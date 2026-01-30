@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -120,9 +122,26 @@ public class MigrationService {
         polygonRepository.save(polygon);
 
         var lines = entry.getValue();
-        lineRepository.saveAll(lines);
+        var nonDuplicateLines = removeLineDuplicates(lines);
+        lineRepository.saveAll(nonDuplicateLines);
       }
     }
+  }
+
+  //TODO GISA-89 duplicate lines being persisted.
+  //This is a temporal fix to update the line entity to use UUIDs without saving duplicates
+  private List<Line> removeLineDuplicates(List<Line> lines) {
+    Set<Integer> seenIds = new HashSet<>();
+    List<Line> nonDuplicateLines = new ArrayList<>();
+    for (var line : lines) {
+      if (seenIds.contains(line.getOracleLineSsid())) {
+        continue;
+      } else {
+        seenIds.add(line.getOracleLineSsid());
+        nonDuplicateLines.add(line);
+      }
+    }
+    return nonDuplicateLines;
   }
 
   public void verifyAllChildFeaturesAreInsideParentFeatures() {
@@ -200,7 +219,7 @@ public class MigrationService {
       Map<String, Object> attributes
   ) {
     var polygon = new Polygon();
-    polygon.setId(polygonSidId);
+    polygon.setOraclePolygonSsid(polygonSidId);
     polygon.setAttributes(attributes);
     polygon.setFeature(feature);
     return polygon;
@@ -216,7 +235,7 @@ public class MigrationService {
   ) {
 
     var line = new Line();
-    line.setId(oracleBoundaryLine.getLineSidId().intValue());
+    line.setOracleLineSsid(oracleBoundaryLine.getLineSidId().intValue());
     line.setAttributes(Map.of()); //TODO: Set attributes
     line.setPolygon(polygon);
     line.setNavigationType(lineNavigationType);

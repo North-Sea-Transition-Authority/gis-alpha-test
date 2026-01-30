@@ -2,9 +2,9 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
-import com.esri.core.geometry.Point;
 import arcgisjs.OrderedLineSegmentOuterClass;
 import arcgisjs.ValidatePolygonReconstructionRequestOuterClass;
+import com.esri.core.geometry.Point;
 import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
 import com.example.grpc.CalculateAreaResponse;
@@ -157,7 +157,7 @@ public class GrpcClientService {
 
     for (Line line : parentLines) {
       requestBuilder.addParents(LineParent.newBuilder()
-          .setId(line.getId())
+          .setId(line.getId().toString())
           .setEsriJsonPolyline(line.getLineJson())
           .build());
     }
@@ -167,10 +167,10 @@ public class GrpcClientService {
 
     var response = arcgisClient.findParentLine(requestBuilder.build());
 
-    Map<String, Integer> polylineToParentLineId = new HashMap<>();
+    Map<String, UUID> polylineToParentLineId = new HashMap<>();
 
     for (ReconstructedLine line : response.getLinesList()) {
-      polylineToParentLineId.put(line.getEsriJsonPolyline(), line.getParentId());
+      polylineToParentLineId.put(line.getEsriJsonPolyline(), UUID.fromString(line.getParentId()));
     }
 
     return new FindParentLineResponse(polylineToParentLineId, response.getOrphanedChildrenJsonList());

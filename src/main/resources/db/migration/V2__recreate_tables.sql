@@ -19,7 +19,8 @@ ALTER TABLE features ADD CONSTRAINT features_shape_sid_id_test_case_unique UNIQU
 
 
 CREATE TABLE polygons (
-    id NUMERIC NOT NULL
+    id UUID NOT NULL
+    , oracle_polygon_ssid NUMERIC
     , feature_id UUID NOT NULL
     , attributes JSONB NOT NULL
     , CONSTRAINT polygons_pk PRIMARY KEY (id)
@@ -29,8 +30,9 @@ CREATE TABLE polygons (
 CREATE INDEX polygons_feature_id_idx ON polygons (feature_id);
 
 CREATE TABLE lines (
-    id NUMERIC NOT NULL
-    , polygon_id NUMERIC
+    id UUID NOT NULL
+    , oracle_line_ssid NUMERIC
+    , polygon_id UUID
     , navigation_type TEXT NOT NULL
     , ring_number INTEGER NOT NULL
     , ring_connection_order INTEGER NOT NULL

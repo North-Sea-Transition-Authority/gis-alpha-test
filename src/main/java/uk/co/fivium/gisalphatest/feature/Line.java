@@ -9,7 +9,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Map;
+import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 @Entity
@@ -17,7 +19,10 @@ import org.hibernate.type.SqlTypes;
 public class Line {
 
   @Id
-  private Integer id;
+  @UuidGenerator
+  private UUID id;
+
+  private Integer oracleLineSsid;
 
   private Integer boundarySidId;
 
@@ -38,12 +43,16 @@ public class Line {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
-  public Integer getId() {
+  public UUID getId() {
     return id;
   }
 
-  public void setId(Integer id) {
-    this.id = id;
+  public Integer getOracleLineSsid() {
+    return oracleLineSsid;
+  }
+
+  public void setOracleLineSsid(Integer oracleLineSsid) {
+    this.oracleLineSsid = oracleLineSsid;
   }
 
   public Integer getBoundarySidId() {

@@ -2,7 +2,8 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-public record FindParentLineResponse(Map<String, Integer> polylineToParentLineId,
+public record FindParentLineResponse(Map<String, UUID> polylineToParentLineId,
                                      List<String> orphanLines) {
 }

@@ -15,7 +15,7 @@ export const findParentLine: ArcGisServiceHandlers["findParentLine"] = (call, ca
         }));
 
         // Map<ParentID, Polyline[]>
-        const groups = new Map<number, any>();
+        const groups = new Map<string, Polyline[]>();
         const orphans = [];
 
         // --- PHASE 2: Match each child line to a parent line ---

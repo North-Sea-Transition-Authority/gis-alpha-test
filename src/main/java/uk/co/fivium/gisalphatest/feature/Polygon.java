@@ -7,7 +7,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Map;
+import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.type.SqlTypes;
 
 @Entity
@@ -15,7 +17,10 @@ import org.hibernate.type.SqlTypes;
 public class Polygon {
 
   @Id
-  private Integer id;
+  @UuidGenerator
+  private UUID id;
+
+  private Integer oraclePolygonSsid;
 
   @JoinColumn(name = "feature_id")
   @ManyToOne
@@ -25,12 +30,16 @@ public class Polygon {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
-  public Integer getId() {
+  public UUID getId() {
     return id;
   }
 
-  public void setId(Integer id) {
-    this.id = id;
+  public Integer getOraclePolygonSsid() {
+    return oraclePolygonSsid;
+  }
+
+  public void setOraclePolygonSsid(Integer id) {
+    this.oraclePolygonSsid = id;
   }
 
   public Feature getFeature() {

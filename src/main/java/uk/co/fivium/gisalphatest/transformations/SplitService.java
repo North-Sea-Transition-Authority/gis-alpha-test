@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -70,7 +71,6 @@ public class SplitService {
     numberLines(newLineEntities);
     validateLinesAreValid(newLineEntities, outputPolygon);
     copyParentEntityAttributes(target, inputPolygons, newLineEntities);
-    addLineIds(newLineEntities);
     lineRepository.saveAll(newLineEntities);
 
   }
@@ -79,7 +79,7 @@ public class SplitService {
                                               List<Line> inputPolygonLines) {
     List<String> explodedPolygonLines = grpcClientService.explodePolygon(outputPolygon);
     var findParentLineResponse = grpcClientService.findParentLine(inputPolygonLines, explodedPolygonLines);
-    Map<Integer, Line> idToParentLine = inputPolygonLines.stream()
+    Map<UUID, Line> idToParentLine = inputPolygonLines.stream()
         .collect(Collectors.toMap(Line::getId, Function.identity()));
 
     List<Line> newLineEntities = findParentLineResponse.polylineToParentLineId()
@@ -172,19 +172,7 @@ public class SplitService {
       newPolygon.setAttributes(inputPolygons.getFirst().getAttributes());
     }
 
-    //TODO GISA-86 update postgres entities to use UUIDs as IDs rather than oracle Integers
-    var polygonId = polygonRepository.findMaxId();
-    newPolygon.setId(++polygonId);
     polygonRepository.save(newPolygon);
-
     newLineEntities.forEach(line -> line.setPolygon(newPolygon));
-  }
-
-  //TODO GISA-86 update postgres entities to use UUIDs as IDs rather than oracle Integers
-  private void addLineIds(List<Line> newLineEntities) {
-    var currentId = lineRepository.findMaxId();
-    for (Line line : newLineEntities) {
-      line.setId(++currentId);
-    }
   }
 }

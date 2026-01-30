@@ -62,7 +62,7 @@ message ExplodePolygonResponse {
 }
 
 message LineParent {
-  int32 id = 1;
+  string id = 1;
   string esriJsonPolyline = 2;
 }
 
@@ -72,7 +72,7 @@ message FindParentLineRequest {
 }
 
 message ReconstructedLine {
-  int32 parentId = 1;
+  string parentId = 1;
   string esriJsonPolyline = 2;
 }
 
