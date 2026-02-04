@@ -4,74 +4,52 @@ import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.servlet.ModelAndView;
-import uk.co.fivium.gisalphatest.feature.FeatureRepository;
-import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
-import uk.co.fivium.gisalphatest.migration.MigrationService;
-import uk.co.fivium.gisalphatest.oracle.OracleCutLineRepository;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Controller
 public class SplitTestController {
 
   private final SplitService splitService;
-  private final FeatureRepository featureRepository;
-  private final GrpcClientService grpcClientService;
-  private final OracleCutLineRepository oracleCutLineRepository;
-  private final MigrationService migrationService;
 
-  SplitTestController(
-      SplitService splitService,
-      FeatureRepository featureRepository,
-      GrpcClientService grpcClientService,
-      OracleCutLineRepository oracleCutLineRepository,
-      MigrationService migrationService) {
+  public SplitTestController(SplitService splitService) {
     this.splitService = splitService;
-    this.featureRepository = featureRepository;
-    this.grpcClientService = grpcClientService;
-    this.oracleCutLineRepository = oracleCutLineRepository;
-    this.migrationService = migrationService;
   }
 
+  //GISA-41 split a shape with a cut line
   @GetMapping("/split")
   public ModelAndView splitPolygon() {
-    migrationService.migrate(
-        List.of(
-            new OracleShapeCompositeKey(57005318, "Simple split test")
-        )
+    String testCase = "Simple split test";
+    splitService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57005318, testCase),
+        List.of(new OracleShapeCompositeKey(57450328, testCase), new OracleShapeCompositeKey(57450333, testCase)),
+        testCase
     );
-    var migratedPolygon = featureRepository.findAllByShapeSidId(57005318).getFirst();
-
-    String geoJsonSplitLine = oracleCutLineRepository.findByTestCase("Simple split test")
-        .get()
-        .getCutLineGeojson();
-
-    String esriJsonCutterLine = grpcClientService.convertLineToEsriJson(geoJsonSplitLine, migratedPolygon.getSrs(), false);
-    var result = splitService.splitPolygon(migratedPolygon, esriJsonCutterLine);
-
-    System.out.println("Results:");
-    result.forEach(System.out::println);
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
 
+  //GISA-30 split a diagonal loxodrome shape
   @GetMapping("/split2")
   public ModelAndView splitPolygon2() {
-    migrationService.migrate(
-        List.of(
-            new OracleShapeCompositeKey(57015719, "GISA-30")
-        )
+    String testCase = "GISA-30";
+    splitService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57015719, testCase),
+        List.of(new OracleShapeCompositeKey(57021440, testCase), new OracleShapeCompositeKey(57021445, testCase)),
+        testCase
     );
-    var migratedPolygon = featureRepository.findAllByShapeSidId(57015719).getFirst();
 
-    String geoJsonSplitLine = oracleCutLineRepository.findByTestCase("GISA-30")
-        .get()
-        .getCutLineGeojson();
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 
-    String esriJsonCutterLine = grpcClientService.convertLineToEsriJson(geoJsonSplitLine, migratedPolygon.getSrs(), false);
-    var result = splitService.splitPolygon(migratedPolygon, esriJsonCutterLine);
-
-    System.out.println("Results:");
-    result.forEach(System.out::println);
+  //GISA-69 split an offshore coastline shape
+  @GetMapping("/split3")
+  public ModelAndView splitPolygon3() {
+    String testCase = "GISA-69";
+    splitService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(56975489, testCase),
+        List.of(new OracleShapeCompositeKey(56977341, testCase), new OracleShapeCompositeKey(56977346, testCase)),
+        testCase
+    );
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }

@@ -70,8 +70,8 @@ public class OracleService {
     return entityBackedOracleShapes;
   }
 
-  public double getOracleShapeArea(Integer shapeSidId, String testCase) {
-    return oracleShapeRepository.findById(new OracleShapeCompositeKey(shapeSidId, testCase))
+  public double getOracleShapeArea(OracleShapeCompositeKey shapeId) {
+    return oracleShapeRepository.findById(shapeId)
         .map(OracleShape::getShareAreaM2).
         orElse((double) 0);
   }

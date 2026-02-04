@@ -2,7 +2,9 @@ package uk.co.fivium.gisalphatest.transformations;
 
 import com.esri.core.geometry.Point;
 import jakarta.transaction.Transactional;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,8 +13,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.feature.Feature;
+import uk.co.fivium.gisalphatest.feature.FeatureAreaService;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.Line;
 import uk.co.fivium.gisalphatest.feature.LineNavigationType;
@@ -21,9 +26,14 @@ import uk.co.fivium.gisalphatest.feature.Polygon;
 import uk.co.fivium.gisalphatest.feature.PolygonRepository;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
+import uk.co.fivium.gisalphatest.migration.MigrationService;
+import uk.co.fivium.gisalphatest.oracle.OracleCutLineRepository;
+import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Service
 public class SplitService {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SplitService.class);
 
   public static final String AFTER_SPLIT = "_afterSplit";
   private final PolygonService polygonService;
@@ -31,25 +41,86 @@ public class SplitService {
   private final PolygonRepository polygonRepository;
   private final LineRepository lineRepository;
   private final FeatureRepository featureRepository;
+  private final MigrationService migrationService;
+  private final OracleCutLineRepository oracleCutLineRepository;
+  private final FeatureAreaService featureAreaService;
 
   public SplitService(PolygonService polygonService,
                       GrpcClientService grpcClientService,
                       PolygonRepository polygonRepository,
                       LineRepository lineRepository,
-                      FeatureRepository featureRepository) {
+                      FeatureRepository featureRepository,
+                      MigrationService migrationService,
+                      OracleCutLineRepository oracleCutLineRepository,
+                      FeatureAreaService featureAreaService) {
     this.polygonService = polygonService;
     this.grpcClientService = grpcClientService;
     this.polygonRepository = polygonRepository;
     this.lineRepository = lineRepository;
     this.featureRepository = featureRepository;
+    this.migrationService = migrationService;
+    this.oracleCutLineRepository = oracleCutLineRepository;
+    this.featureAreaService = featureAreaService;
   }
 
   @Transactional
-  public List<String> splitPolygon(Feature target, String cutterLineEsriJson) {
+  public void testOracleShapeSplit(OracleShapeCompositeKey oracleShapeTarget,
+                                   List<OracleShapeCompositeKey> oracleExpectedShapeResults,
+                                   String oracleCutLineTestCase) {
+    var polygonsToMigrate = new ArrayList<>(oracleExpectedShapeResults);
+    polygonsToMigrate.add(oracleShapeTarget);
+    migrationService.migrate(polygonsToMigrate);
+    migrationService.migrateFeatureAreas();
+
+    var migratedTargetPolygon = featureRepository.findAllByShapeSidId(oracleShapeTarget.getShapeSidId()).getFirst();
+    String geoJsonSplitLine = oracleCutLineRepository.findByTestCase(oracleCutLineTestCase)
+        .get()
+        .getCutLineGeojson();
+    String esriJsonCutterLine = grpcClientService.convertLineToEsriJson(geoJsonSplitLine, migratedTargetPolygon.getSrs(), false);
+
+    var resultFeatures = splitPolygon(migratedTargetPolygon, esriJsonCutterLine);
+
+    validateAreaAgainstOracleExpected(resultFeatures, oracleExpectedShapeResults);
+
+    LOGGER.info("Results:");
+    resultFeatures.forEach(feature -> LOGGER.info("feature: {}", feature.getId()));
+  }
+
+  private void validateAreaAgainstOracleExpected(List<Feature> resultFeatures,
+                                                 List<OracleShapeCompositeKey> oracleExpectedShapeResults) {
+    List<Integer> oracleExpectedShapesSsid = oracleExpectedShapeResults.stream()
+        .map(OracleShapeCompositeKey::getShapeSidId)
+        .toList();
+    List<Feature> oracleExpectedFeatures = featureRepository.findAllByShapeSidIdIn(oracleExpectedShapesSsid)
+        .stream()
+        .sorted(Comparator.comparing(Feature::getFeatureArea))
+        .toList();
+    resultFeatures.sort(Comparator.comparing(Feature::getFeatureArea));
+
+    if (resultFeatures.size() != oracleExpectedShapesSsid.size()) {
+      throw new IllegalStateException("resultFeatures.size() (%s) != oracleExpectedShapesSsid.size() (%s)".formatted(resultFeatures.size(), oracleExpectedShapesSsid.size()));
+    }
+
+    for (int i = 0; i < resultFeatures.size(); i++) {
+      Feature oracleExpectedFeature = oracleExpectedFeatures.get(i);
+      Feature resultFeature = resultFeatures.get(i);
+      BigDecimal difference = resultFeature.getFeatureArea().subtract(oracleExpectedFeature.getFeatureArea());
+      resultFeature.setAreaDifference(difference);
+
+      if (difference.abs().compareTo(BigDecimal.valueOf(20)) > 0) {
+        LOGGER.error("Feature {} has an area difference bigger than 20m^2 compared to its oracle counterpart", resultFeature.getId());
+      }
+    }
+
+    featureRepository.saveAll(resultFeatures);
+  }
+
+  @Transactional
+  public List<Feature> splitPolygon(Feature target, String cutterLineEsriJson) {
     var esriJsonPolygon = polygonService.getPolygonsAsEsriJson(target.getShapeSidId(), target.getTestCase(), false).getFirst();
 
-    System.out.println("target polygon:");
-    System.out.println(esriJsonPolygon);
+    LOGGER.info("target polygon:");
+    LOGGER.info(esriJsonPolygon);
 
     List<String> resultPolygons = grpcClientService.splitPolygon(esriJsonPolygon, cutterLineEsriJson);
 
@@ -57,22 +128,27 @@ public class SplitService {
     //19 lines that in reality are 18 (there is an extra node in a line)
     //String testerOutput = "{\"spatialReference\":{\"wkid\":4230},\"rings\":[[[2.46666666666667,53.05],[2.46666666666667,53.06],[2.46666666666667,53.0666666666667],[2.45,53.0666666666667],[2.45,53.075],[2.475,53.075],[2.475,53.1125],[2.48333333333333,53.1125],[2.48333333333333,53.1027777777778],[2.5,53.1027777777778],[2.5,53.0916666666667],[2.51666666666667,53.0916666666667],[2.51666666666667,53.0861111111111],[2.52222222222222,53.0861111111111],[2.52222222222222,53.0805555555556],[2.51666666666667,53.0805555555556],[2.51666666666667,53.0666666666667],[2.5,53.0666666666667],[2.5,53.05],[2.46666666666667,53.05]]]}";
 
-    resultPolygons.forEach(polygon -> processOutputPolygon(target, polygon));
+    List<Feature> resultFeatures = new ArrayList<>();
+    resultPolygons.forEach(polygon -> {
+      var newFeature = processOutputPolygon(target, polygon);
+      resultFeatures.add(newFeature);
+    });
 
-    return resultPolygons;
+    return resultFeatures;
   }
 
-  private void processOutputPolygon(Feature target,
-                                    String outputPolygon) {
+  private Feature processOutputPolygon(Feature target,
+                                       String outputPolygon) {
     var inputPolygons = polygonRepository.findAllByFeature(target);
     var inputPolygonLines = lineRepository.findAllByPolygonIn(inputPolygons);
 
     List<Line> newLineEntities = getLinesForOutputPolygon(outputPolygon, inputPolygonLines);
     numberLines(newLineEntities);
     validateLinesAreValid(newLineEntities, outputPolygon);
-    copyParentEntityAttributes(target, inputPolygons, newLineEntities);
+    var newFeature = copyParentEntityAttributes(target, inputPolygons, newLineEntities);
     lineRepository.saveAll(newLineEntities);
-
+    featureAreaService.calculateFeatureArea(newFeature);
+    return newFeature;
   }
 
   private List<Line> getLinesForOutputPolygon(String outputPolygon,
@@ -155,7 +231,7 @@ public class SplitService {
     }
   }
 
-  private void copyParentEntityAttributes(Feature target,
+  private Feature copyParentEntityAttributes(Feature target,
                                           List<Polygon> inputPolygons,
                                           List<Line> newLineEntities) {
     var newFeature = new Feature();
@@ -174,5 +250,7 @@ public class SplitService {
 
     polygonRepository.save(newPolygon);
     newLineEntities.forEach(line -> line.setPolygon(newPolygon));
+
+    return newFeature;
   }
 }

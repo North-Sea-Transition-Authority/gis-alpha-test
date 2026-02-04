@@ -11,5 +11,7 @@ public interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
 
   List<Feature> findAllByShapeSidId(Integer shapeSidId);
 
+  List<Feature> findAllByShapeSidIdIn(List<Integer> shapeSidIds);
+
   List<Feature> findAllByParentFeatureIdIsNotNull();
 }

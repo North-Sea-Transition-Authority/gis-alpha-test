@@ -108,7 +108,7 @@ public class GrpcClientService {
 
   /**
    * Takes an EsriJSON polygon and returns the area
-   * @param esriPolygon an EsriJSON polygon
+   * @param esriPolygon an EsriJSON polygon. This should have loxodrome lines densified.
    * @return the area in metres squared
    */
   public double calculatePolygonArea(String esriPolygon) {

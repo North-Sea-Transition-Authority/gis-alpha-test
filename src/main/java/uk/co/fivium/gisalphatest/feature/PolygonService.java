@@ -38,7 +38,7 @@ public class PolygonService {
    * Generates all the EsriJSON polygons for a given feature.
    *
    * @param feature the feature whose polygons will be built as EsriJSON.
-   * @param densifyLoxodromeLines true if the loxodrome lines on the feature should be densified before the polygon is built.
+   * @param densifyLoxodromeLines true if the loxodrome lines on the feature should be densified before the polygon is built (usually true if calculating the area).
    * @return a list of EsriJSON polygons for the given feature
    */
   public List<String> getPolygonsAsEsriJson(Feature feature, boolean densifyLoxodromeLines) {

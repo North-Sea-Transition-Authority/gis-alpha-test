@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.feature.Feature;
+import uk.co.fivium.gisalphatest.feature.FeatureAreaService;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureService;
 import uk.co.fivium.gisalphatest.feature.FeatureType;
@@ -46,6 +47,7 @@ public class MigrationService {
 
   private final MigrationRestApiService migrationRestApiService;
   private final GrpcClientService grpcClientService;
+  private final FeatureAreaService featureAreaService;
 
   MigrationService(
       LineRepository lineRepository,
@@ -55,8 +57,8 @@ public class MigrationService {
       FeatureService featureService,
       PolygonService polygonService,
       MigrationRestApiService migrationRestApiService,
-      GrpcClientService grpcClientService
-  ) {
+      GrpcClientService grpcClientService,
+      FeatureAreaService featureAreaService) {
     this.lineRepository = lineRepository;
     this.polygonRepository = polygonRepository;
     this.featureRepository = featureRepository;
@@ -65,6 +67,7 @@ public class MigrationService {
     this.polygonService = polygonService;
     this.migrationRestApiService = migrationRestApiService;
     this.grpcClientService = grpcClientService;
+    this.featureAreaService = featureAreaService;
   }
 
   @Transactional
@@ -165,26 +168,21 @@ public class MigrationService {
   public void migrateFeatureAreas() {
     var features = featureRepository.findAll();
 
-    features.forEach(feature -> {
-      var shapeSidId = feature.getShapeSidId();
-      var testCase = feature.getTestCase();
+    for(var feature: features) {
+      if (feature.getShapeSidId() == null) {
+        //only get areas for oracle migrated features
+        continue;
+      }
 
-      var jsonPolygons = polygonService.getPolygonsAsEsriJson(shapeSidId, testCase, true);
-      var combinedPolygon = grpcClientService.unionPolygons(jsonPolygons);
-      var area = grpcClientService.calculatePolygonArea(combinedPolygon);
-      feature.setFeatureArea(new BigDecimal(area));
-
-      var oracleArea = oracleService.getOracleShapeArea(shapeSidId, testCase);
-      // bigger number means the new area is bigger than the oracle area
-      var difference = area - oracleArea;
-      feature.setAreaDifference(new BigDecimal(difference));
-      if (Math.abs(difference) >= 20) {
-        LOGGER.warn("Shape id {} has new area greater than 20 metres squared different to oracle. Diffference: {} ",
+      featureAreaService.calculateFeatureArea(feature);
+      featureAreaService.calculateAreaDifference(feature, new OracleShapeCompositeKey(feature.getShapeSidId(), feature.getTestCase()));
+      if (feature.getAreaDifference().abs().compareTo(BigDecimal.valueOf(20)) > 0) {
+        LOGGER.warn("Shape id {} has new area greater than 20 metres squared different to oracle. Difference: {} ",
             feature.getId(),
-            difference
+            feature.getAreaDifference()
         );
       }
-    });
+    }
 
     featureRepository.saveAll(features);
   }

@@ -2,7 +2,6 @@ package uk.co.fivium.gisalphatest.feature;
 
 import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,8 +20,7 @@ public class FeatureService {
       FeatureRepository featureRepository,
       PolygonRepository polygonRepository,
       LineRepository lineRepository,
-      EntityManager entityManager
-  ) {
+      EntityManager entityManager) {
     this.featureRepository = featureRepository;
     this.polygonRepository = polygonRepository;
     this.lineRepository = lineRepository;
