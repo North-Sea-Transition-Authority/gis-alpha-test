@@ -20,4 +20,17 @@ public class LineUtils {
 
     return polyLine.toString();
   }
+
+  public static String pointToNorthSouthLineJson(double longitude, double latitude) {
+    var startPoint = new Point(longitude, latitude - ONE_ARC_SECOND);
+    var middlePoint = new Point(longitude, latitude);
+    var endPoint = new Point(longitude, latitude + ONE_ARC_SECOND);
+
+    var polyLine = new Polyline();
+    polyLine.startPath(startPoint);
+    polyLine.lineTo(middlePoint);
+    polyLine.lineTo(endPoint);
+
+    return polyLine.toString();
+  }
 }
