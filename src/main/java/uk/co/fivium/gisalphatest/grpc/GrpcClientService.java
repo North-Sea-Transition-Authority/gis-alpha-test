@@ -42,24 +42,34 @@ public class GrpcClientService {
 
   /**
    * Converts a GeoJSON line to an EsriJSON polyline.
-   * @param geoJson A GeoJSON of type "LineString" in string format
+   * @param geoJson a GeoJSON of type "LineString" in string format
    * @param wkid the spatial reference Well Known ID of the geojson. (E.g. the number version of "ED 50")
    * @param isGeodesic true if the input GeoJSON represents a geodesic line.
+   * @param parentLines list of all the lines from the parent shape, if there is no parent shape, this should be an empty list.
    * @return An EsriJSON polyline in string format
    */
   public String convertLineToEsriJson(
       String geoJson,
       Integer wkid,
-      boolean isGeodesic
+      boolean isGeodesic,
+      List<String> parentLines
   ) {
     GeoJsonRequest request = GeoJsonRequest.newBuilder()
         .setGeoJsonString(geoJson)
         .setWkid(wkid)
         .setIsGeodesic(isGeodesic)
+        .addAllParentLines(parentLines)
         .build();
 
     EsriJsonResponse response = arcgisClient.convertGeoJsonLineToEsriJsonLine(request);
     return response.getEsriJsonString();
+  }
+
+  public String convertCutLineToEsriJson(
+      String geoJson,
+      Integer wkid
+  ) {
+    return convertLineToEsriJson(geoJson, wkid, false, List.of());
   }
 
   /**

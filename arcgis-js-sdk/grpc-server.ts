@@ -1,14 +1,12 @@
 import grpc from '@grpc/grpc-js';
 import protoLoader from '@grpc/proto-loader';
 import path from 'path';
-import * as Terraformer from "@terraformer/arcgis";
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import type {ProtoGrpcType} from "./generated/ArcGisJs.ts";
 import type {ArcGisServiceHandlers} from "./generated/arcgisjs/ArcGisService.ts";
 import Polygon from "@arcgis/core/geometry/Polygon.js";
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
-import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator";
 import {unionPolygons} from "./handlers/union-polygons";
 import {calculatePolygonArea} from "./handlers/calculate-polygon-area";
 import {densifyLoxodromePolyline} from "./handlers/densify-loxodrome-polyline";
@@ -20,6 +18,7 @@ import {getStartAndEndPoints} from './handlers/get-start-and-end-points'
 import {validatePolygonReconstruction} from './handlers/validate-polygon-reconstruction.js';
 import esriConfig from "@arcgis/core/config.js";
 import express from "express";
+import {convertGeoJsonLineToEsriJsonLine} from "./handlers/convert-geo-json-line-to-esri-json.js";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -44,26 +43,6 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 });
 
 const arcGisJsProto: ProtoGrpcType["arcgisjs"] = grpc.loadPackageDefinition(packageDefinition).arcgisjs as any;
-
-const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeoJsonLineToEsriJsonLine'] = async (call, callback) => {
-  const { geoJsonString, wkid, isGeodesic } = call.request;
-  console.log(`Input srs: ${wkid} isGeodesic: ${isGeodesic} geojson: ${geoJsonString}`)
-
-  let polyline: Polyline = Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(geoJsonString)));
-  polyline.spatialReference = { wkid: wkid }
-
-  if (isGeodesic) {
-    if (!geodeticDensifyOperator.isLoaded()) {
-      await geodeticDensifyOperator.load();
-    }
-
-    polyline = geodeticDensifyOperator.execute(polyline, 50, { curveType: "geodesic", unit: "meters" }) as Polyline;
-
-  }
-  const esriJsonString = JSON.stringify(polyline);
-  console.log(`Output esrijson: ${esriJsonString}`)
-  callback(null, {esriJsonString: esriJsonString});
-}
 
 const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => {
   const polylines: Polyline[] = [];

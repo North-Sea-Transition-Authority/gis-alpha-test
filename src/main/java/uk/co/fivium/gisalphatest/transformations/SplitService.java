@@ -76,7 +76,7 @@ public class SplitService {
     String geoJsonSplitLine = oracleCutLineRepository.findByTestCase(oracleCutLineTestCase)
         .get()
         .getCutLineGeojson();
-    String esriJsonCutterLine = grpcClientService.convertLineToEsriJson(geoJsonSplitLine, migratedTargetPolygon.getSrs(), false);
+    String esriJsonCutterLine = grpcClientService.convertCutLineToEsriJson(geoJsonSplitLine, migratedTargetPolygon.getSrs());
 
     var resultFeatures = splitPolygon(migratedTargetPolygon, esriJsonCutterLine);
 

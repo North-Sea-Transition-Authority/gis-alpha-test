@@ -95,12 +95,17 @@ public class MigrationService {
 
         List<Line> newLines = new ArrayList<>();
 
+        var parentLines = new ArrayList<String>();
+        if (newFeature.getParentFeatureId() != null) {
+          var parent = featureRepository.findById(newFeature.getParentFeatureId()).orElseThrow();
+          parentLines.addAll(featureService.getEntityBackedFeature(parent).polygonToLines().values().stream().flatMap(List::stream).map(Line::getLineJson).toList());
+        }
+
         for (var oracleBoundary : oracleBoundaries) {
           for (var oracleLine : entityBackedShape.boundaryToLine().get(oracleBoundary)) {
 
             var ringNumber = oracleBoundaries.indexOf(oracleBoundary);
             var ringConnectionOrder = oracleLine.getConnectionOrder().intValue();
-
 
             var newLine = migrateLine(
                 newPolygon,
@@ -108,7 +113,8 @@ public class MigrationService {
                 ringNumber,
                 ringConnectionOrder,
                 oracleLine.getLineNavigationType(),
-                newFeature.getSrs()
+                newFeature.getSrs(),
+                parentLines
             );
 
             newLines.add(newLine);
@@ -229,7 +235,8 @@ public class MigrationService {
       Integer ringNumber,
       Integer connectionOrder,
       LineNavigationType lineNavigationType,
-      Integer wkid
+      Integer wkid,
+      List<String> parentLines
   ) {
 
     var line = new Line();
@@ -243,8 +250,8 @@ public class MigrationService {
       // convert geoJson to esriJson using ArcGis JS SDK via gRPC
 
       String esriJson = switch (lineNavigationType) {
-        case LOXODROME -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, false);
-        case GEODESIC -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, true);
+        case LOXODROME -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, false, parentLines);
+        case GEODESIC -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, true, parentLines);
         case CARTESIAN -> null;
       };
 
