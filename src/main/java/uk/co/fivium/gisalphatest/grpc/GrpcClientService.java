@@ -121,9 +121,13 @@ public class GrpcClientService {
    * @param esriPolygon an EsriJSON polygon. This should have loxodrome lines densified.
    * @return the area in metres squared
    */
-  public double calculatePolygonArea(String esriPolygon) {
+  public double calculatePolygonArea(
+      String esriPolygon,
+      boolean isOnshore
+  ) {
     var request = CalculatePolygonAreaRequest.newBuilder()
         .setEsriJsonPolygon(esriPolygon)
+        .setIsOnshore(isOnshore)
         .build();
     CalculateAreaResponse response = arcgisClient.calculatePolygonArea(request);
     return response.getArea();

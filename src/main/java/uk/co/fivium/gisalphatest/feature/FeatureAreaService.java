@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
+import uk.co.fivium.gisalphatest.migration.Srs;
 import uk.co.fivium.gisalphatest.oracle.OracleService;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
@@ -30,7 +31,7 @@ public class FeatureAreaService {
   public void calculateFeatureArea(Feature newFeature) {
     List<String> polygonsAsEsriJson = polygonService.getPolygonsAsEsriJson(newFeature, true);
     String combinedPolygon = grpcClientService.unionPolygons(polygonsAsEsriJson);
-    double areaProcessed = grpcClientService.calculatePolygonArea(combinedPolygon);
+    double areaProcessed = Math.abs(grpcClientService.calculatePolygonArea(combinedPolygon, Srs.BNG.getValue().equals(newFeature.getSrs())));
     newFeature.setFeatureArea(BigDecimal.valueOf(areaProcessed));
     featureRepository.save(newFeature);
   }

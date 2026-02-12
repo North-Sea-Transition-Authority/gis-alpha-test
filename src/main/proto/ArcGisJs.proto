@@ -100,6 +100,7 @@ message UnionPolygonsResponse {
 
 message CalculatePolygonAreaRequest {
   string esriJsonPolygon = 1;
+  bool isOnshore = 2;
 }
 
 message CalculateAreaResponse {

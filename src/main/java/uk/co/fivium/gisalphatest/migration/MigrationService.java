@@ -79,6 +79,7 @@ public class MigrationService {
     var entityBackedOracleShapes = oracleService.getEntityBackedOracleShapes(ids);
 
     for (var entityBackedShape : entityBackedOracleShapes) {
+      System.out.printf("migrating %s %s%n", entityBackedShape.shape().getShapeSidId(), entityBackedShape.shape().getShapeName());
       var newFeature = migrateFeature(entityBackedShape);
 
       Map<Polygon, List<Line>> polygonToLine = new HashMap<>();
@@ -156,7 +157,7 @@ public class MigrationService {
   public void verifyAllChildFeaturesAreInsideParentFeatures() {
     var childFeatures = featureRepository.findAllByParentFeatureIdIsNotNull();
 
-    for(var child: childFeatures) {
+    for (var child : childFeatures) {
       var parent = featureRepository.findById(child.getParentFeatureId())
           .orElseThrow(() -> new IllegalStateException("Parent feature not found for child %s".formatted(child.getId())));
       var childJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(child, false));
@@ -250,9 +251,8 @@ public class MigrationService {
       // convert geoJson to esriJson using ArcGis JS SDK via gRPC
 
       String esriJson = switch (lineNavigationType) {
-        case LOXODROME -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, false, parentLines);
+        case LOXODROME, CARTESIAN -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, false, parentLines);
         case GEODESIC -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, true, parentLines);
-        case CARTESIAN -> null;
       };
 
       line.setLineJson(esriJson);
