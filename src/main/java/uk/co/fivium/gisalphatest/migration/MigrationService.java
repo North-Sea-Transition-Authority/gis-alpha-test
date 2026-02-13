@@ -21,13 +21,12 @@ import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureService;
 import uk.co.fivium.gisalphatest.feature.FeatureType;
 import uk.co.fivium.gisalphatest.feature.Line;
-import uk.co.fivium.gisalphatest.feature.LineNavigationType;
 import uk.co.fivium.gisalphatest.feature.LineRepository;
 import uk.co.fivium.gisalphatest.feature.Polygon;
 import uk.co.fivium.gisalphatest.feature.PolygonRepository;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
-import uk.co.fivium.gisalphatest.oracle.OracleBoundaryLine;
+import uk.co.fivium.gisalphatest.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisalphatest.oracle.OracleService;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
@@ -94,33 +93,19 @@ public class MigrationService {
             Map.of() //TODO: Set attributes
         );
 
-        List<Line> newLines = new ArrayList<>();
-
         var parentLines = new ArrayList<String>();
         if (newFeature.getParentFeatureId() != null) {
           var parent = featureRepository.findById(newFeature.getParentFeatureId()).orElseThrow();
           parentLines.addAll(featureService.getEntityBackedFeature(parent).polygonToLines().values().stream().flatMap(List::stream).map(Line::getLineJson).toList());
         }
 
-        for (var oracleBoundary : oracleBoundaries) {
-          for (var oracleLine : entityBackedShape.boundaryToLine().get(oracleBoundary)) {
-
-            var ringNumber = oracleBoundaries.indexOf(oracleBoundary);
-            var ringConnectionOrder = oracleLine.getConnectionOrder().intValue();
-
-            var newLine = migrateLine(
-                newPolygon,
-                oracleLine,
-                ringNumber,
-                ringConnectionOrder,
-                oracleLine.getLineNavigationType(),
-                newFeature.getSrs(),
-                parentLines
-            );
-
-            newLines.add(newLine);
-          }
-        }
+        var newLines = migrateLines(
+            newFeature,
+            newPolygon,
+            oracleBoundaries,
+            entityBackedShape,
+            parentLines
+        );
 
         polygonToLine.put(newPolygon, newLines);
 
@@ -189,6 +174,7 @@ public class MigrationService {
             feature.getAreaDifference()
         );
       }
+      System.out.printf("Shape %s area %s difference %s%n", feature.getFeatureName(), feature.getFeatureArea(), feature.getAreaDifference());
     }
 
     featureRepository.saveAll(features);
@@ -230,46 +216,44 @@ public class MigrationService {
     return polygon;
   }
 
-  private Line migrateLine(
+  private List<Line> migrateLines(
+      Feature feature,
       Polygon polygon,
-      OracleBoundaryLine oracleBoundaryLine,
-      Integer ringNumber,
-      Integer connectionOrder,
-      LineNavigationType lineNavigationType,
-      Integer wkid,
+      List<OraclePolygonBoundary> oracleBoundaries,
+      EntityBackedOracleShape entityBackedShape,
       List<String> parentLines
   ) {
-
-    var line = new Line();
-    line.setOracleLineSsid(oracleBoundaryLine.getLineSidId().intValue());
-    line.setAttributes(Map.of()); //TODO: Set attributes
-    line.setPolygon(polygon);
-    line.setNavigationType(lineNavigationType);
-    line.setBoundarySidId(oracleBoundaryLine.getBoundarySidId().intValue());
-
-    if (useGrpc) {
-      // convert geoJson to esriJson using ArcGis JS SDK via gRPC
-
-      String esriJson = switch (lineNavigationType) {
-        case LOXODROME, CARTESIAN -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, false, parentLines);
-        case GEODESIC -> grpcClientService.convertLineToEsriJson(oracleBoundaryLine.getLineGeojson(), wkid, true, parentLines);
-      };
-
-      line.setLineJson(esriJson);
-    } else {
-      // convert geoJson to esriJson using ArcGis JS SDK via rest api
-
-      String esriJson = switch (lineNavigationType) {
-        case LOXODROME -> migrationRestApiService.geoJsonLineToEsriJsonLine(oracleBoundaryLine.getLineGeojson());
-        case GEODESIC -> null;
-        case CARTESIAN -> null;
-      };
-
-      line.setLineJson(esriJson);
+// Collect all lines for this polygon to batch the gRPC call
+    List<OracleBoundaryLineWithRing> linesWithRing = new ArrayList<>();
+    for (var oracleBoundary : oracleBoundaries) {
+      for (var oracleLine : entityBackedShape.boundaryToLine().get(oracleBoundary)) {
+        linesWithRing.add(new OracleBoundaryLineWithRing(oracleLine, oracleBoundaries.indexOf(oracleBoundary)));
+      }
     }
 
-    line.setRingNumber(ringNumber);
-    line.setRingConnectionOrder(connectionOrder);
-    return line;
+    // Single batch gRPC call for all lines in this polygon
+    Map<Integer, String> esriJsonByLineSsid = grpcClientService.convertLinesToEsriJson(
+        linesWithRing,
+        feature.getSrs(),
+        parentLines
+    );
+
+    // Create Line entities from the batch results
+    List<Line> newLines = new ArrayList<>();
+    for (var entry : linesWithRing) {
+      var oracleLine = entry.oracleBoundaryLine();
+      var oracleLineSsid = oracleLine.getLineSidId().intValue();
+      var line = new Line();
+      line.setOracleLineSsid(oracleLineSsid);
+      line.setAttributes(Map.of());
+      line.setPolygon(polygon);
+      line.setNavigationType(oracleLine.getLineNavigationType());
+      line.setBoundarySidId(oracleLine.getBoundarySidId().intValue());
+      line.setLineJson(esriJsonByLineSsid.get(oracleLineSsid));
+      line.setRingNumber(entry.ringNumber());
+      line.setRingConnectionOrder(oracleLine.getConnectionOrder().intValue());
+      newLines.add(line);
+    }
+    return newLines;
   }
 }

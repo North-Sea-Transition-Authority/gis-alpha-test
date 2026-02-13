@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message EsriJsonLineOutput {
+  string esriJsonString = 1;
+  int32 oracleLineSsid = 2;
+}

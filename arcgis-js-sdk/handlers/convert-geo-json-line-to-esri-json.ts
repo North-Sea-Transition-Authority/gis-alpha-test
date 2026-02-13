@@ -9,6 +9,9 @@ import grpc from "@grpc/grpc-js";
 
 const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.000000670;
 
+// 1 second in degrees (arc second) == 1° (degree) / 60'(minutes) / 60” (seconds)
+const ONE_ARC_SECOND = 1 / 3600.0;
+
 export const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeoJsonLineToEsriJsonLine'] = async (call, callback) => {
     const {geoJsonString, wkid, isGeodesic, parentLines} = call.request;
     console.log(`Input srs: ${wkid} isGeodesic: ${isGeodesic} geojson: ${geoJsonString}`)
@@ -31,6 +34,7 @@ export const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeo
                     code: grpc.status.INVALID_ARGUMENT,
                     message: errorMessage
                 }, null);
+                return;
             } else {
                 polyline = mergeParentDensePointsIntoChildLine(parent, childStartPoint, childEndPoint, polyline.spatialReference)
             }
@@ -47,6 +51,53 @@ export const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeo
     const esriJsonString = JSON.stringify(polyline);
     console.log(`Output esrijson: ${esriJsonString}`)
     callback(null, {esriJsonString: esriJsonString});
+}
+
+export const batchConvertGeoJsonLinesToEsriJsonLines: ArcGisServiceHandlers['batchConvertGeoJsonLinesToEsriJsonLines'] = async (call, callback) => {
+    const {linesWithType, wkid, parentLines} = call.request;
+    console.log(`Batch convert: ${linesWithType.length} lines, srs: ${wkid}`);
+
+    const lines: { esriJsonString: string; oracleLineSsid: number }[] = [];
+
+    for (const lineInput of linesWithType) {
+        const {geoJsonString, isGeodesic, oracleLineSsid} = lineInput;
+        console.log(`Input srs: ${wkid} isGeodesic: ${isGeodesic} oracleLineSsid: ${oracleLineSsid} geojson: ${geoJsonString}`);
+
+        let polyline: Polyline = Polyline.fromJSON(Terraformer.geojsonToArcGIS(JSON.parse(geoJsonString)));
+        polyline.spatialReference = {wkid: wkid};
+
+        if (isGeodesic) {
+            if (parentLines.length > 0) {
+
+                const {childStartPoint, childEndPoint} = getStartAndEndNodes(polyline)
+
+                const parent = findParentLine(parentLines, childStartPoint, childEndPoint);
+
+                if (parent === undefined) {
+                    const errorMessage = "Geodesic child line should have associated parent line but none were found";
+                    console.error(errorMessage);
+                    callback({
+                        code: grpc.status.INVALID_ARGUMENT,
+                        message: errorMessage
+                    }, null);
+                    return;
+                } else {
+                    polyline = mergeParentDensePointsIntoChildLine(parent, childStartPoint, childEndPoint, polyline.spatialReference);
+                }
+            } else {
+                if (!geodeticDensifyOperator.isLoaded()) {
+                    await geodeticDensifyOperator.load();
+                }
+                polyline = geodeticDensifyOperator.execute(polyline, 50, {curveType: "geodesic", unit: "meters"}) as Polyline;
+            }
+        }
+
+        const esriJsonString = JSON.stringify(polyline);
+        console.log(`Output esrijson: ${esriJsonString}`);
+        lines.push({esriJsonString: esriJsonString, oracleLineSsid: oracleLineSsid});
+    }
+
+    callback(null, {lines: lines});
 }
 
 function findParentLine(
@@ -120,4 +171,26 @@ function getNearestParentStartAndEndNodes(
     const nearestStartPoint = proximityOperator.getNearestCoordinate(parent, childStartPoint);
     const nearestEndPoint = proximityOperator.getNearestCoordinate(parent, childEndPoint);
     return {nearestStartPoint, nearestEndPoint};
+}
+
+function pointToEastWestLine(longitude: number, latitude: number, srs: SpatialReference) {
+    return new Polyline({
+        paths: [[
+            [longitude - ONE_ARC_SECOND, latitude],
+            [longitude, latitude],
+            [longitude + ONE_ARC_SECOND, latitude]
+        ]],
+        spatialReference: srs
+    })
+}
+
+function pointToNorthSouthLine(longitude: number, latitude: number, srs: SpatialReference) {
+    return new Polyline({
+        paths: [[
+            [longitude, latitude - ONE_ARC_SECOND],
+            [longitude, latitude],
+            [longitude, latitude + ONE_ARC_SECOND]
+        ]],
+        spatialReference: srs
+    })
 }

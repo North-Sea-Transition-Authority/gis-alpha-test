@@ -18,7 +18,10 @@ import {getStartAndEndPoints} from './handlers/get-start-and-end-points'
 import {validatePolygonReconstruction} from './handlers/validate-polygon-reconstruction.js';
 import esriConfig from "@arcgis/core/config.js";
 import express from "express";
-import {convertGeoJsonLineToEsriJsonLine} from "./handlers/convert-geo-json-line-to-esri-json.js";
+import {
+  convertGeoJsonLineToEsriJsonLine,
+  batchConvertGeoJsonLinesToEsriJsonLines
+} from "./handlers/convert-geo-json-line-to-esri-json.js";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -83,6 +86,7 @@ function main() {
 
   server.addService(arcGisJsProto.ArcGisService.service, {
     convertGeoJsonLineToEsriJsonLine,
+    batchConvertGeoJsonLinesToEsriJsonLines,
     buildPolygon,
     splitPolygon,
     explodePolygon,

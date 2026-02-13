@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message GeoJsonLineInput {
+  string geoJsonString = 1;
+  bool isGeodesic = 2;
+  int32 oracleLineSsid = 3;
+}

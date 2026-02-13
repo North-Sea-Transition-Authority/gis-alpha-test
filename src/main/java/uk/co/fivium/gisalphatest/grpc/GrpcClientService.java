@@ -1,5 +1,8 @@
 package uk.co.fivium.gisalphatest.grpc;
 
+import arcgisjs.BatchConvertGeoJsonToEsriJsonRequest;
+import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
+import arcgisjs.GeoJsonLineInputOuterClass;
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
 import arcgisjs.OrderedLineSegmentOuterClass;
@@ -32,6 +35,8 @@ import java.util.UUID;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.feature.Line;
+import uk.co.fivium.gisalphatest.feature.LineNavigationType;
+import uk.co.fivium.gisalphatest.migration.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisalphatest.transformations.LineWrapper;
 
 @Service
@@ -63,6 +68,45 @@ public class GrpcClientService {
 
     EsriJsonResponse response = arcgisClient.convertGeoJsonLineToEsriJsonLine(request);
     return response.getEsriJsonString();
+  }
+
+  /**
+   * Converts multiple GeoJSON lines to EsriJSON polylines in a single gRPC call.
+   * If the line belongs to a child shape, the start and end nodes of some lines may be shifted to align with the parent shape
+   * if the parent and child shape contain geodesic lines, as the parents geodesic line will be densified and may not then
+   * line up with the child.
+   * @param linesWithRing list of records containing the OracleBoundaryLine and its ring number
+   * @param wkid the spatial reference Well Known ID
+   * @param parentLines list of all the lines from the parent shape, if there is no parent shape, this should be an empty list.
+   * @return A map of oracleLineSsid to EsriJSON polyline string
+   */
+  public Map<Integer, String> convertLinesToEsriJson(
+      List<OracleBoundaryLineWithRing> linesWithRing,
+      Integer wkid,
+      List<String> parentLines
+  ) {
+    var requestBuilder = BatchConvertGeoJsonToEsriJsonRequest.BatchGeoJsonRequest.newBuilder()
+        .setWkid(wkid)
+        .addAllParentLines(parentLines);
+
+    for (var entry : linesWithRing) {
+      var oracleLine = entry.oracleBoundaryLine();
+      requestBuilder.addLinesWithType(GeoJsonLineInputOuterClass.GeoJsonLineInput.newBuilder()
+          .setGeoJsonString(oracleLine.getLineGeojson())
+          .setIsGeodesic(oracleLine.getLineNavigationType() == LineNavigationType.GEODESIC)
+          .setOracleLineSsid(oracleLine.getLineSidId().intValue())
+          .build()
+      );
+    }
+
+    BatchConvertGeoJsonToEsriJsonResponse.BatchEsriJsonResponse response =
+        arcgisClient.batchConvertGeoJsonLinesToEsriJsonLines(requestBuilder.build());
+
+    Map<Integer, String> result = new HashMap<>();
+    for (var lineOutput : response.getLinesList()) {
+      result.put(lineOutput.getOracleLineSsid(), lineOutput.getEsriJsonString());
+    }
+    return result;
   }
 
   public String convertCutLineToEsriJson(

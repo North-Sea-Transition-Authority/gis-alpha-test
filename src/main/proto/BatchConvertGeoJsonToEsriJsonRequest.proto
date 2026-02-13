@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import "GeoJsonLineInput.proto";
+
+message BatchGeoJsonRequest {
+  repeated GeoJsonLineInput linesWithType = 1;
+  int32 wkid = 2;
+  repeated string parentLines = 3;
+}
