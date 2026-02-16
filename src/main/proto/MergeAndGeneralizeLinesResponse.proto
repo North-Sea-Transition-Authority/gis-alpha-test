@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message MergeAndGeneralizeLinesResponse {
+  string esriPolyline = 1;
+}

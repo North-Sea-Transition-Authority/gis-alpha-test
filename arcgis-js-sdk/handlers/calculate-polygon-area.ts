@@ -11,7 +11,6 @@ export const calculatePolygonArea: ArcGisServiceHandlers["calculatePolygonArea"]
     if (call.request.isOnshore) {
         area = areaOperator.execute(polygon, {unit: "square-meters"});
     } else {
-        // TODO GISA-80: update once we make the resources available offline
         if (!geodeticAreaOperator.isLoaded()) {
             await geodeticAreaOperator.load();
         }

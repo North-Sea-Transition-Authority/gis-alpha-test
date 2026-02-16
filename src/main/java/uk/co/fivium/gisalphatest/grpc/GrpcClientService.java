@@ -2,9 +2,12 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import arcgisjs.BatchConvertGeoJsonToEsriJsonRequest;
 import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
+import arcgisjs.GeneralizePolygonRequestOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
+import arcgisjs.MergeAndGeneralizeLinesRequestOuterClass;
+import arcgisjs.MergePolygonsRequestOuterClass;
 import arcgisjs.OrderedLineSegmentOuterClass;
 import arcgisjs.ValidatePolygonReconstructionRequestOuterClass;
 import com.esri.core.geometry.Point;
@@ -298,5 +301,45 @@ public class GrpcClientService {
 
     var response = arcgisClient.validatePolygonReconstruction(request);
     return response.getIsValid();
+  }
+
+  /**
+   * Merge 2 polygons using the ArcGis JS unionOperator.
+   * @param polygon1 EsriJson polygon to union
+   * @param polygon2 EsriJson polygon to union
+   * @return The merged polygon esriJson
+   */
+  public String mergePolygons(String polygon1, String polygon2) {
+    var request = MergePolygonsRequestOuterClass.MergePolygonsRequest.newBuilder()
+        .setInputPolygon1(polygon1)
+        .setInputPolygon2(polygon2)
+        .build();
+    var response = arcgisClient.mergePolygons(request);
+    return response.getResultPolygon();
+  }
+
+  /**
+   * Remove redundant vertices on a polygon using the ArcGis generalizeOperator.
+   * @param polygon Polygon to generalize as EsriJson.
+   * @return Generalized polygon as EsriJson.
+   */
+  public String generalizePolygon(String polygon) {
+    var request = GeneralizePolygonRequestOuterClass.GeneralizePolygonRequest.newBuilder()
+        .setEsriPolygon(polygon)
+        .build();
+    var response = arcgisClient.generalizePolygon(request);
+    return response.getEsriPolygon();
+  }
+
+  /**
+   * Merge multiple polylines into a single line.
+   * The resulting line is generalized to remove redundant vertices.
+   */
+  public String mergeAndGeneralizeLines(List<String> polylinesEsriJson) {
+    var request = MergeAndGeneralizeLinesRequestOuterClass.MergeAndGeneralizeLinesRequest.newBuilder()
+        .addAllEsriPolylines(polylinesEsriJson)
+        .build();
+    var response = arcgisClient.mergeAndGeneralizeLines(request);
+    return response.getEsriPolyline();
   }
 }

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message MergePolygonsRequest {
+  string inputPolygon1 = 1;
+  string inputPolygon2 = 2;
+}

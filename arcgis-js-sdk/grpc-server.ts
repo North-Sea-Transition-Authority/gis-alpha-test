@@ -10,17 +10,19 @@ import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import {unionPolygons} from "./handlers/union-polygons";
 import {calculatePolygonArea} from "./handlers/calculate-polygon-area";
 import {densifyLoxodromePolyline} from "./handlers/densify-loxodrome-polyline";
-
 import {findParentLine} from './handlers/lineTools.js';
 import {explodePolygon} from './handlers/polygonTools.js';
 import {checkParentContainsChild} from './handlers/check-parent-contains-child';
 import {getStartAndEndPoints} from './handlers/get-start-and-end-points'
 import {validatePolygonReconstruction} from './handlers/validate-polygon-reconstruction.js';
+import {mergePolygons} from './handlers/merge-polygons.js';
+import {generalizePolygon} from './handlers/generalizePolygon.js';
+import {mergeAndGeneralizeLines} from './handlers/merge-and-generalize-lines';
 import esriConfig from "@arcgis/core/config.js";
 import express from "express";
 import {
-  convertGeoJsonLineToEsriJsonLine,
-  batchConvertGeoJsonLinesToEsriJsonLines
+  batchConvertGeoJsonLinesToEsriJsonLines,
+  convertGeoJsonLineToEsriJsonLine
 } from "./handlers/convert-geo-json-line-to-esri-json.js";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
@@ -96,7 +98,10 @@ function main() {
     calculatePolygonArea,
     checkParentContainsChild,
     getStartAndEndPoints,
-    validatePolygonReconstruction
+    validatePolygonReconstruction,
+    mergePolygons,
+    generalizePolygon,
+    mergeAndGeneralizeLines
   });
 
   const bindAddress = '0.0.0.0:8082';

@@ -8,6 +8,12 @@ import "GetStartAndEndPointsRequest.proto";
 import "GetStartAndEndPointsResponse.proto";
 import "BatchConvertGeoJsonToEsriJsonRequest.proto";
 import "BatchConvertGeoJsonToEsriJsonResponse.proto";
+import "MergePolygonsRequest.proto";
+import "MergePolygonsResponse.proto";
+import "GeneralizePolygonRequest.proto";
+import "GeneralizePolygonResponse.proto";
+import "MergeAndGeneralizeLinesRequest.proto";
+import "MergeAndGeneralizeLinesResponse.proto";
 
 option java_multiple_files = true;
 option java_package = "com.example.grpc";
@@ -26,6 +32,9 @@ service ArcGisService {
   rpc checkParentContainsChild (CheckParentContainsChildRequest) returns (CheckParentContainsChildResponse) {};
   rpc getStartAndEndPoints(GetStartAndEndPointsRequest) returns (GetStartAndEndPointsResponse) {};
   rpc validatePolygonReconstruction (ValidatePolygonReconstructionRequest) returns (ValidatePolygonReconstructionResponse) {};
+  rpc mergePolygons (MergePolygonsRequest) returns (MergePolygonsResponse) {};
+  rpc generalizePolygon (GeneralizePolygonRequest) returns (GeneralizePolygonResponse) {};
+  rpc mergeAndGeneralizeLines (MergeAndGeneralizeLinesRequest) returns (MergeAndGeneralizeLinesResponse) {};
 }
 
 message GeoJsonRequest {
