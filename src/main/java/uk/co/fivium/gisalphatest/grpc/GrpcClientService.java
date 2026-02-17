@@ -2,6 +2,7 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import arcgisjs.BatchConvertGeoJsonToEsriJsonRequest;
 import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
+import arcgisjs.ConvertEsriJsonPolygonToGeoJsonRequestOuterClass;
 import arcgisjs.GeneralizePolygonRequestOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
@@ -341,5 +342,20 @@ public class GrpcClientService {
         .build();
     var response = arcgisClient.mergeAndGeneralizeLines(request);
     return response.getEsriPolyline();
+  }
+
+  /**
+   * Convert an esriJson polygon into the geoJson format. It will project the geometry to srs WGS84 (World Geodetic System 1984)
+   * as that is the SRS supported by GeoJson
+   * @param esriJsonPolygon Polygon to convert
+   * @return A string representing the original polygon after being projected to the new srs and stored in geoJson.
+   */
+  public String convertEsriJsonPolygonToGeoJson(String esriJsonPolygon) {
+    var request = ConvertEsriJsonPolygonToGeoJsonRequestOuterClass.ConvertEsriJsonPolygonToGeoJsonRequest.newBuilder()
+        .setEsriJsonPolygon(esriJsonPolygon)
+        .build();
+
+    var response = arcgisClient.convertEsriJsonPolygonToGeoJson(request);
+    return response.getGeoJsonPolygon();
   }
 }

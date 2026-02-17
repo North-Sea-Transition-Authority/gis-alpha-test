@@ -10,6 +10,7 @@ import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import {unionPolygons} from "./handlers/union-polygons";
 import {calculatePolygonArea} from "./handlers/calculate-polygon-area";
 import {densifyLoxodromePolyline} from "./handlers/densify-loxodrome-polyline";
+import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
 import {findParentLine} from './handlers/lineTools.js';
 import {explodePolygon} from './handlers/polygonTools.js';
 import {checkParentContainsChild} from './handlers/check-parent-contains-child';
@@ -24,6 +25,7 @@ import {
   batchConvertGeoJsonLinesToEsriJsonLines,
   convertGeoJsonLineToEsriJsonLine
 } from "./handlers/convert-geo-json-line-to-esri-json.js";
+import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -63,7 +65,9 @@ const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => 
     spatialReference: {wkid: call.request.srs}
   });
 
-  callback(null, {esriJsonString: JSON.stringify(polygon.toJSON())})
+  const result = simplifyOperator.execute(polygon) as Polygon;
+
+  callback(null, {esriJsonString: JSON.stringify(result.toJSON())})
 }
 
 const splitPolygon: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => {
@@ -101,7 +105,8 @@ function main() {
     validatePolygonReconstruction,
     mergePolygons,
     generalizePolygon,
-    mergeAndGeneralizeLines
+    mergeAndGeneralizeLines,
+    convertEsriJsonPolygonToGeoJson
   });
 
   const bindAddress = '0.0.0.0:8082';
