@@ -2,7 +2,6 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import arcgisjs.BatchConvertGeoJsonToEsriJsonRequest;
 import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
-import arcgisjs.ConvertEsriJsonPolygonToGeoJsonRequestOuterClass;
 import arcgisjs.GeneralizePolygonRequestOuterClass;
 import arcgisjs.EsriJsonLineWithNavigationTypeAndIdOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
@@ -11,6 +10,7 @@ import arcgisjs.LineWithIdOuterClass;
 import arcgisjs.MergeAndGeneralizeLinesRequestOuterClass;
 import arcgisjs.MergePolygonsRequestOuterClass;
 import arcgisjs.OrderedLineSegmentOuterClass;
+import arcgisjs.ProjectPolygonsRequestOuterClass;
 import arcgisjs.ValidatePolygonReconstructionRequestOuterClass;
 import arcgisjs.VerifyChildGeodesicLinesOverlapParentsRequestOuterClass;
 import com.esri.core.geometry.Point;
@@ -382,17 +382,15 @@ public class GrpcClientService {
   }
 
   /**
-   * Convert an esriJson polygon into the geoJson format. It will project the geometry to srs WGS84 (World Geodetic System 1984)
-   * as that is the SRS supported by GeoJson
-   * @param esriJsonPolygon Polygon to convert
-   * @return A string representing the original polygon after being projected to the new srs and stored in geoJson.
+   * Project polygons to WGS84
    */
-  public String convertEsriJsonPolygonToGeoJson(String esriJsonPolygon) {
-    var request = ConvertEsriJsonPolygonToGeoJsonRequestOuterClass.ConvertEsriJsonPolygonToGeoJsonRequest.newBuilder()
-        .setEsriJsonPolygon(esriJsonPolygon)
+  public List<String> projectedPolygonsToWgs84(List<String> polygons) {
+    var request = ProjectPolygonsRequestOuterClass.ProjectPolygonsRequest.newBuilder()
+        .addAllEsriJsonPolygons(polygons)
         .build();
 
-    var response = arcgisClient.convertEsriJsonPolygonToGeoJson(request);
-    return response.getGeoJsonPolygon();
+    var response = arcgisClient.projectPolygons(request);
+    return response.getProjectedPolygonsList();
   }
+
 }

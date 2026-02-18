@@ -67,4 +67,8 @@ public class PolygonService {
 
     return polygonsAsEsriJson;
   }
+
+  public List<String> getPolygonsAsEsriJsonProjected(List<String> esriJsonPolygons) {
+    return grpcClientService.projectedPolygonsToWgs84(esriJsonPolygons);
+  }
 }

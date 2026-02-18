@@ -16,8 +16,8 @@ import "GeneralizePolygonRequest.proto";
 import "GeneralizePolygonResponse.proto";
 import "MergeAndGeneralizeLinesRequest.proto";
 import "MergeAndGeneralizeLinesResponse.proto";
-import "ConvertEsriJsonPolygonToGeoJsonRequest.proto";
-import "ConvertEsriJsonPolygonToGeoJsonResponse.proto";
+import "ProjectPolygonsRequest.proto";
+import "ProjectPolygonsResponse.proto";
 
 option java_multiple_files = true;
 option java_package = "com.example.grpc";
@@ -40,7 +40,7 @@ service ArcGisService {
   rpc mergePolygons (MergePolygonsRequest) returns (MergePolygonsResponse) {};
   rpc generalizePolygon (GeneralizePolygonRequest) returns (GeneralizePolygonResponse) {};
   rpc mergeAndGeneralizeLines (MergeAndGeneralizeLinesRequest) returns (MergeAndGeneralizeLinesResponse) {};
-  rpc convertEsriJsonPolygonToGeoJson (ConvertEsriJsonPolygonToGeoJsonRequest) returns (ConvertEsriJsonPolygonToGeoJsonResponse) {};
+  rpc projectPolygons (ProjectPolygonsRequest) returns (ProjectPolygonsResponse) {};
 }
 
 message GeoJsonRequest {

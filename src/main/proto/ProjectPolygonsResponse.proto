@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message ProjectPolygonsResponse {
+  repeated string projectedPolygons = 1;
+}

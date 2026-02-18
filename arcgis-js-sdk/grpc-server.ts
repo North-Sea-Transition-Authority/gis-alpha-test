@@ -25,7 +25,7 @@ import {
   batchConvertGeoJsonLinesToEsriJsonLines,
   convertGeoJsonLineToEsriJsonLine
 } from "./handlers/convert-geo-json-line-to-esri-json.js";
-import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json";
+import {projectPolygons} from "./handlers/project-polygons";
 import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesToPolygonsOperator.js";
 import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
 
@@ -108,7 +108,7 @@ function main() {
     mergePolygons,
     generalizePolygon,
     mergeAndGeneralizeLines,
-    convertEsriJsonPolygonToGeoJson
+    projectPolygons
   });
 
   const bindAddress = '0.0.0.0:8082';

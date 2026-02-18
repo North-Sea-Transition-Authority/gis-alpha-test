@@ -45,9 +45,9 @@ class FeatureMapController {
     return new ModelAndView("gis-alpha-test/featuremap/featureMap");
   }
 
-  @GetMapping("/geojson")
+  @GetMapping("/esrijson")
   @ResponseBody
-  public Map<String, Object> getGeoJson() throws JsonProcessingException {
+  public Map<String, Object> getEsriJson() throws JsonProcessingException {
     var features = featureRepository.findAll();
 
     List<Map<String, Object>> geoJsonFeatures = new ArrayList<>();
@@ -59,27 +59,25 @@ class FeatureMapController {
 
 
       var esriJsonPolygons = polygonService.getPolygonsAsEsriJson(feature, false);
+      var projectedEsriJsonPolygons = polygonService.getPolygonsAsEsriJsonProjected(esriJsonPolygons);
 
-      for (var esriJsonPolygon : esriJsonPolygons) {
-        var geoJsonGeometry = grpcClientService.convertEsriJsonPolygonToGeoJson(esriJsonPolygon);
+      for (var esriJsonPolygon : projectedEsriJsonPolygons) {
 
-        Map<String, Object> properties = new HashMap<>();
-        properties.put("featureId", feature.getId().toString());
-        properties.put("featureName", feature.getFeatureName());
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("featureId", feature.getId().toString());
+        attributes.put("featureName", feature.getFeatureName());
 
-        Map<String, Object> geoJsonFeature = new HashMap<>();
-        geoJsonFeature.put("type", "Feature");
-        geoJsonFeature.put("geometry", objectMapper.readValue(geoJsonGeometry, Map.class));
-        geoJsonFeature.put("properties", properties);
+        Map<String, Object> esriJsonFeature = new HashMap<>();
+        esriJsonFeature.put("geometry", objectMapper.readValue(esriJsonPolygon, Map.class));
+        esriJsonFeature.put("attributes", attributes);
 
-        geoJsonFeatures.add(geoJsonFeature);
+        geoJsonFeatures.add(esriJsonFeature);
       }
     }
 
-    Map<String, Object> featureCollection = new HashMap<>();
-    featureCollection.put("type", "FeatureCollection");
-    featureCollection.put("features", geoJsonFeatures);
+    Map<String, Object> featureSet = new HashMap<>();
+    featureSet.put("features", geoJsonFeatures);
 
-    return featureCollection;
+    return featureSet;
   }
 }

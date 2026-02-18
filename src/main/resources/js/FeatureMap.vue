@@ -1,13 +1,13 @@
 <template>
   <ol-map class="map" ref="mapRef" tabindex="0">
-    <ol-view :center="[0, 0]" :zoom="2" />
+    <ol-view :center="[0, 0]" :zoom="2"/>
 
     <ol-tile-layer>
       <ol-source-osm />
     </ol-tile-layer>
 
     <ol-vector-layer :style="featureStyle" :declutter="true">
-      <ol-source-vector :url="'/feature-map/geojson'" :format="geoJson" @featuresloadend="fitToExtent">
+      <ol-source-vector :url="'/feature-map/esrijson'" :format="esriJson" @featuresloadend="fitToExtent">
       </ol-source-vector>
     </ol-vector-layer>
   </ol-map>
@@ -15,15 +15,19 @@
 
 <script setup>
 import {onMounted, ref} from 'vue';
-import GeoJSON from 'ol/format/GeoJSON';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import {Fill, Stroke, Style, Text} from 'ol/style';
+import {EsriJSON} from "ol/format";
+import {useGeographic} from "ol/proj";
 
 const mapRef = ref(null);
-const geoJson = new GeoJSON();
+const esriJson = new EsriJSON();
 const quadrantUrl = buildServiceUrl('UKCS_quadrants_(WGS84)', 'QUADRANT');
 const quadBlockUrl = buildServiceUrl('UKCS_blocks_(WGS84)', 'BLOCK_REF');
+
+//allow us to use geographic coordinates on the map
+useGeographic()
 
 onMounted(() => {
   const map = mapRef.value?.map;
@@ -46,7 +50,7 @@ onMounted(() => {
 
 function buildServiceUrl(resourcePath, outFields = '') {
   const serviceBase = 'https://services-eu1.arcgis.com/OZMfUznmLTnWccBc/arcgis/rest/services/';
-  const querySuffix = '/FeatureServer/0/query?where=1%3D1&f=geojson';
+  const querySuffix = '/FeatureServer/0/query?where=1%3D1&f=json';
   const encodedOutFields = outFields ? `&outFields=${encodeURIComponent(outFields)}` : '';
   return `${serviceBase}${resourcePath}${querySuffix}${encodedOutFields}`;
 }
@@ -54,7 +58,7 @@ function buildServiceUrl(resourcePath, outFields = '') {
 //There is a 2000 feature limit on each API call, so we need to paginate them.
 function createPaginatedVectorSource(serviceUrl) {
   return new VectorSource({
-    format: geoJson,
+    format: esriJson,
     loader: async function (extent, resolution, projection) {
       const urlObj = new URL(serviceUrl);
       const format = this.getFormat();
@@ -72,7 +76,7 @@ function createPaginatedVectorSource(serviceUrl) {
           const features = format.readFeatures(data, {featureProjection: projection});
           this.addFeatures(features);
           offset += features.length;
-          hasMore = data?.properties?.exceededTransferLimit === true;
+          hasMore = data?.exceededTransferLimit === true;
         }
       } catch (error) {
         console.error('Error loading vector source:', error);
