@@ -2,6 +2,7 @@ package uk.co.fivium.gisalphatest.feature;
 
 import com.esri.core.geometry.Point;
 import com.esri.core.geometry.Polyline;
+import java.util.List;
 
 public class LineUtils {
 
@@ -32,5 +33,9 @@ public class LineUtils {
     polyLine.lineTo(endPoint);
 
     return polyLine.toString();
+  }
+
+  public static List<Line> getLinesFromFeature(EntityBackedFeature feature) {
+    return feature.polygonToLines().values().stream().flatMap(List::stream).toList();
   }
 }

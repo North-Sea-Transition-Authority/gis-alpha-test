@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message EsriJsonLineWithNavigationTypeAndId {
+  string esriJsonPolyline = 1;
+  bool isGeodesic = 2;
+}

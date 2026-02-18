@@ -1,6 +1,7 @@
 
 package uk.co.fivium.gisalphatest.migration;
 
+import static uk.co.fivium.gisalphatest.feature.LineUtils.getLinesFromFeature;
 import static uk.co.fivium.gisalphatest.migration.Srs.fromOracleName;
 
 import java.math.BigDecimal;
@@ -21,6 +22,7 @@ import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureService;
 import uk.co.fivium.gisalphatest.feature.FeatureType;
 import uk.co.fivium.gisalphatest.feature.Line;
+import uk.co.fivium.gisalphatest.feature.LineNavigationType;
 import uk.co.fivium.gisalphatest.feature.LineRepository;
 import uk.co.fivium.gisalphatest.feature.Polygon;
 import uk.co.fivium.gisalphatest.feature.PolygonRepository;
@@ -154,6 +156,28 @@ public class MigrationService {
 
     }
     System.out.println("All children features are contained by parent features");
+
+    verifyChildGeodesicLinesOverlapParents();
+  }
+
+  private void verifyChildGeodesicLinesOverlapParents() {
+    var childFeatures = featureRepository.findAllByParentFeatureIdIsNotNull();
+    for (var child : childFeatures) {
+      var childLines = getLinesFromFeature(featureService.getEntityBackedFeature(child));
+
+      if (childLines.stream().noneMatch(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))) {
+        continue;
+      }
+
+      var parent = featureRepository.findById(child.getParentFeatureId())
+          .orElseThrow(() -> new IllegalStateException("Parent feature not found for child %s".formatted(child.getId())));
+      var parentLines = getLinesFromFeature(featureService.getEntityBackedFeature(parent));
+
+      var overlaps = grpcClientService.verifyChildGeodesicLinesOverlapParents(parentLines, childLines);
+
+      System.out.printf("Child shape's '%s' geodesic lines overlap parent shape's '%s' geodesic lines: %s%n"
+          .formatted(child.getFeatureName(), parent.getFeatureName(), overlaps));
+    }
   }
 
   @Transactional

@@ -8,6 +8,8 @@ import "GetStartAndEndPointsRequest.proto";
 import "GetStartAndEndPointsResponse.proto";
 import "BatchConvertGeoJsonToEsriJsonRequest.proto";
 import "BatchConvertGeoJsonToEsriJsonResponse.proto";
+import "VerifyChildGeodesicLinesOverlapParentsRequest.proto";
+import "VerifyChildGeodesicLinesOverlapParentsResponse.proto";
 import "MergePolygonsRequest.proto";
 import "MergePolygonsResponse.proto";
 import "GeneralizePolygonRequest.proto";
@@ -28,6 +30,7 @@ service ArcGisService {
   rpc splitPolygon (SplitPolygonRequest) returns (SplitPolygonResponse) {};
   rpc explodePolygon (ExplodePolygonRequest) returns (ExplodePolygonResponse) {};
   rpc findParentLine (FindParentLineRequest) returns (FindParentLineResponse) {};
+  rpc verifyChildGeodesicLinesOverlapParents (VerifyChildGeodesicLinesOverlapParentsRequest) returns (VerifyChildGeodesicLinesOverlapParentsResponse) {};
   rpc densifyLoxodromePolyline (DensifyLoxodromeLineRequest) returns (DensifyLoxodromeLineResponse) {};
   rpc unionPolygons (UnionPolygonsRequest) returns (UnionPolygonsResponse) {};
   rpc calculatePolygonArea (CalculatePolygonAreaRequest) returns (CalculateAreaResponse) {};

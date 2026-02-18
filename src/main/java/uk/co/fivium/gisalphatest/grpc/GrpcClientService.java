@@ -4,6 +4,7 @@ import arcgisjs.BatchConvertGeoJsonToEsriJsonRequest;
 import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
 import arcgisjs.ConvertEsriJsonPolygonToGeoJsonRequestOuterClass;
 import arcgisjs.GeneralizePolygonRequestOuterClass;
+import arcgisjs.EsriJsonLineWithNavigationTypeAndIdOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
@@ -11,6 +12,7 @@ import arcgisjs.MergeAndGeneralizeLinesRequestOuterClass;
 import arcgisjs.MergePolygonsRequestOuterClass;
 import arcgisjs.OrderedLineSegmentOuterClass;
 import arcgisjs.ValidatePolygonReconstructionRequestOuterClass;
+import arcgisjs.VerifyChildGeodesicLinesOverlapParentsRequestOuterClass;
 import com.esri.core.geometry.Point;
 import com.example.grpc.ArcGisServiceGrpc;
 import com.example.grpc.BuildPolygonRequest;
@@ -237,6 +239,40 @@ public class GrpcClientService {
     }
 
     return new FindParentLineResponse(polylineToParentLineId, response.getOrphanedChildrenJsonList());
+  }
+
+  /**
+   * Verifies that all child geodesic lines overlap their parent geodesic lines.
+   * @param parentLines All parent lines with navigation types
+   * @param childLines All child lines with navigation types
+   * @return true if all child geodesic lines overlap their parent geodesic lines, else false.
+   */
+  public boolean verifyChildGeodesicLinesOverlapParents(
+      List<Line> parentLines,
+      List<Line> childLines
+  ) {
+    var requestBuilder = VerifyChildGeodesicLinesOverlapParentsRequestOuterClass.VerifyChildGeodesicLinesOverlapParentsRequest.newBuilder();
+
+    for (Line line : parentLines) {
+      requestBuilder.addParentLines(
+          EsriJsonLineWithNavigationTypeAndIdOuterClass.EsriJsonLineWithNavigationTypeAndId.newBuilder()
+          .setEsriJsonPolyline(line.getLineJson())
+          .setIsGeodesic(LineNavigationType.GEODESIC.equals(line.getNavigationType()))
+          .build()
+      );
+    }
+
+    for (Line line : childLines) {
+      requestBuilder.addChildLines(
+          EsriJsonLineWithNavigationTypeAndIdOuterClass.EsriJsonLineWithNavigationTypeAndId.newBuilder()
+          .setEsriJsonPolyline(line.getLineJson())
+          .setIsGeodesic(LineNavigationType.GEODESIC.equals(line.getNavigationType()))
+          .build()
+      );
+    }
+
+    var response = arcgisClient.verifyChildGeodesicLinesOverlapParents(requestBuilder.build());
+    return response.getIsValid();
   }
 
   public boolean checkParentContainsChild(String parentPolygon, String childPolygon) {

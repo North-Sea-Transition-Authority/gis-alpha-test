@@ -15,9 +15,8 @@ import {
 } from "./point-connects-to-line-on-set-bearing";
 import * as intersectionOperator from "@arcgis/core/geometry/operators/intersectionOperator.js";
 import Multipoint from "@arcgis/core/geometry/Multipoint";
-import {GeoJsonLineInput} from "../generated/arcgisjs/GeoJsonLineInput";
-
-const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.000000670;
+import {GeoJsonLineInput} from "../generated/arcgisjs/GeoJsonLineInput.js";
+import {findParentLine, getNearestParentStartAndEndNodes, getStartAndEndNodes} from "../utils/line-utils.js";
 
 // 1 second in degrees (arc second) == 1° (degree) / 60'(minutes) / 60” (seconds)
 const ONE_ARC_SECOND = 1 / 3600.0;
@@ -291,38 +290,6 @@ function isMatching(point1: Point, point2: Point): boolean {
     return point1.x === point2.x && point1.y === point2.y;
 }
 
-export function findParentLine(
-    parentLines: string[],
-    childStartPoint: Point,
-    childEndPoint: Point
-): Polyline | undefined {
-    let parent: Polyline | undefined = undefined;
-    let closestStartDistance = 999999;
-    let closestEndDistance = 999999;
-
-    parentLines.forEach((line) => {
-        const possibleParent = Polyline.fromJSON(JSON.parse(line));
-
-        const {
-            nearestStartPoint,
-            nearestEndPoint
-        } = getNearestParentStartAndEndNodes(possibleParent, childStartPoint, childEndPoint)
-
-        if (nearestStartPoint.distance < closestStartDistance && nearestEndPoint.distance < closestEndDistance) {
-            closestStartDistance = nearestStartPoint.distance;
-            closestEndDistance = nearestEndPoint.distance;
-            parent = possibleParent;
-        }
-    })
-
-    if (closestStartDistance > FIVE_CM_IN_DEGREES_AT_48N_ED50 || closestEndDistance > FIVE_CM_IN_DEGREES_AT_48N_ED50) {
-        console.error(`parent line is too far away. start difference: ${closestStartDistance} end difference: ${closestEndDistance}`);
-        return undefined;
-    }
-
-    console.log(`parent line: ${parent} start point difference: ${closestStartDistance} end point difference: ${closestEndDistance}`);
-    return parent;
-}
 
 function mergeParentDensePointsIntoChildLine(
     parent: Polyline,
@@ -349,22 +316,6 @@ function mergeParentDensePointsIntoChildLine(
         paths: [newPath],
         spatialReference: srs,
     });
-}
-
-function getStartAndEndNodes(polyline: Polyline) {
-    const childStartPoint = polyline.getPoint(0, 0);
-    const childEndPoint = polyline.getPoint(0, polyline.paths[0].length - 1);
-    return {childStartPoint, childEndPoint};
-}
-
-function getNearestParentStartAndEndNodes(
-    parent: Polyline,
-    childStartPoint: Point,
-    childEndPoint: Point,
-) {
-    const nearestStartPoint = proximityOperator.getNearestCoordinate(parent, childStartPoint);
-    const nearestEndPoint = proximityOperator.getNearestCoordinate(parent, childEndPoint);
-    return {nearestStartPoint, nearestEndPoint};
 }
 
 function pointToEastWestLine(longitude: number, latitude: number, srs: SpatialReference) {

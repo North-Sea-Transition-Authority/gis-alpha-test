@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import "EsriJsonLineWithNavigationTypeAndId.proto";
+
+message VerifyChildGeodesicLinesOverlapParentsRequest {
+  repeated EsriJsonLineWithNavigationTypeAndId parentLines = 1;
+  repeated EsriJsonLineWithNavigationTypeAndId childLines = 2;
+}
