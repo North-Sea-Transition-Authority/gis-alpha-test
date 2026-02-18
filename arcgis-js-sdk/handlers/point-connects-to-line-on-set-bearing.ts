@@ -1,9 +1,9 @@
 import Point from "@arcgis/core/geometry/Point";
 import Polyline from "@arcgis/core/geometry/Polyline";
 
-export const pointConnectsToLoxodromeLineFollowingSetBearing = (point: Point, lines: LineWithNavigationType[]): LineWithSetBearing | undefined => {
+export const pointConnectsToLoxodromeLineFollowingSetBearing = (point: Point, lines: LineWithNavigationTypeAndId[]): LineWithSetBearingAndId | undefined => {
     let pointConnectsToStartOfLine: boolean;
-    const connectingLine = lines.find((lineWrapper: LineWithNavigationType) => {
+    const connectingLine = lines.find((lineWrapper: LineWithNavigationTypeAndId) => {
         if (lineWrapper.navigationType !== NavigationType.LOXODROME) {
             return false;
         }
@@ -46,6 +46,7 @@ export const pointConnectsToLoxodromeLineFollowingSetBearing = (point: Point, li
     return {
         line: line,
         setBearing: setBearing,
+        id: connectingLine.id
     }
 }
 
@@ -69,20 +70,23 @@ export enum NavigationType {
     GEODESIC = "GEODESIC"
 }
 
-export type LineWithNavigationType = {
+export type LineWithNavigationTypeAndId = {
     line: Polyline;
     navigationType: NavigationType;
+    id: number;
 }
 
-export type LineWithSetBearing = {
+export type LineWithSetBearingAndId = {
     line: Polyline;
     setBearing: SetBearing
+    id: number;
 }
 
-const lineWithNavigationTypeFrom = (polyline: Polyline, navigationType: NavigationType): LineWithNavigationType => {
+const lineWithNavigationTypeFrom = (polyline: Polyline, navigationType: NavigationType, id: number): LineWithNavigationTypeAndId => {
     return {
         line: polyline,
         navigationType: navigationType,
+        id: id
     };
 }
 
@@ -99,10 +103,10 @@ const tester = () => {
     const lineLoxodrome3 = Polyline.fromJSON(JSON.parse(lineLoxodromeEsri3));
     const lineGeodesic = Polyline.fromJSON(JSON.parse(lineGeodesicEsri));
     const lines =[
-        lineWithNavigationTypeFrom(lineLoxodrome1, NavigationType.LOXODROME),
-        lineWithNavigationTypeFrom(lineLoxodrome2, NavigationType.LOXODROME),
-        lineWithNavigationTypeFrom(lineLoxodrome3, NavigationType.LOXODROME),
-        lineWithNavigationTypeFrom(lineGeodesic, NavigationType.GEODESIC),
+        lineWithNavigationTypeFrom(lineLoxodrome1, NavigationType.LOXODROME,1),
+        lineWithNavigationTypeFrom(lineLoxodrome2, NavigationType.LOXODROME, 2),
+        lineWithNavigationTypeFrom(lineLoxodrome3, NavigationType.LOXODROME, 3),
+        lineWithNavigationTypeFrom(lineGeodesic, NavigationType.GEODESIC, 4),
     ];
 
     //Connects to loxodrome following a latitude

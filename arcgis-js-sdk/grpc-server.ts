@@ -26,6 +26,7 @@ import {
   convertGeoJsonLineToEsriJsonLine
 } from "./handlers/convert-geo-json-line-to-esri-json.js";
 import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json";
+import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesToPolygonsOperator.js";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -58,16 +59,15 @@ const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => 
     polylines.push(Polyline.fromJSON(JSON.parse(lineString)));
   })
 
-  const unionPolyLines = unionOperator.executeMany(polylines)
+  const polygons = linesToPolygonsOperator.executeMany(polylines);
 
-  const polygon = new Polygon({
-    rings: unionPolyLines.toJSON()["paths"],
-    spatialReference: {wkid: call.request.srs}
-  });
+  console.log(`Built ${polygons.length} polygons`);
 
-  const result = simplifyOperator.execute(polygon) as Polygon;
+  const unionedPolygon = unionOperator.executeMany(polygons) as Polygon;
 
-  callback(null, {esriJsonString: JSON.stringify(result.toJSON())})
+  const simplifiedPolygon = simplifyOperator.execute(unionedPolygon) as Polygon;
+
+  callback(null, {esriJsonString: JSON.stringify(simplifiedPolygon.toJSON())})
 }
 
 const splitPolygon: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => {

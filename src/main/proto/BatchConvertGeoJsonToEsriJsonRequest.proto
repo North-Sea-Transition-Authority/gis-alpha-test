@@ -7,5 +7,5 @@ import "GeoJsonLineInput.proto";
 message BatchGeoJsonRequest {
   repeated GeoJsonLineInput linesWithType = 1;
   int32 wkid = 2;
-  repeated string parentLines = 3;
+  repeated string parentLineJsons = 3;
 }

@@ -149,7 +149,7 @@ public class MigrationService {
       var parentJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(parent, false));
 
       if (!grpcClientService.checkParentContainsChild(parentJson, childJson)) {
-        throw new IllegalStateException("Child %s not contained by parent %s".formatted(child.getId(), parent.getId()));
+        throw new IllegalStateException("Child %s not contained by parent %s".formatted(child.getFeatureName(), parent.getFeatureName()));
       }
 
     }

@@ -91,7 +91,7 @@ public class GrpcClientService {
   ) {
     var requestBuilder = BatchConvertGeoJsonToEsriJsonRequest.BatchGeoJsonRequest.newBuilder()
         .setWkid(wkid)
-        .addAllParentLines(parentLines);
+        .addAllParentLineJsons(parentLines);
 
     for (var entry : linesWithRing) {
       var oracleLine = entry.oracleBoundaryLine();
@@ -99,6 +99,7 @@ public class GrpcClientService {
           .setGeoJsonString(oracleLine.getLineGeojson())
           .setIsGeodesic(oracleLine.getLineNavigationType() == LineNavigationType.GEODESIC)
           .setOracleLineSsid(oracleLine.getLineSidId().intValue())
+          .setConnectionOrder(oracleLine.getConnectionOrder())
           .build()
       );
     }
