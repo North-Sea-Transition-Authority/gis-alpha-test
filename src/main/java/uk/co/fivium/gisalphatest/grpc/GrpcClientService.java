@@ -11,6 +11,7 @@ import arcgisjs.MergeAndGeneralizeLinesRequestOuterClass;
 import arcgisjs.MergePolygonsRequestOuterClass;
 import arcgisjs.OrderedLineSegmentOuterClass;
 import arcgisjs.ProjectPolygonsRequestOuterClass;
+import arcgisjs.TopologicallyEqualRequestOuterClass.TopologicallyEqualRequest;
 import arcgisjs.ValidatePolygonReconstructionRequestOuterClass;
 import arcgisjs.VerifyChildGeodesicLinesOverlapParentsRequestOuterClass;
 import com.esri.core.geometry.Point;
@@ -393,4 +394,19 @@ public class GrpcClientService {
     return response.getProjectedPolygonsList();
   }
 
+  /**
+   * Performs a topological equality check between two polygons.
+   * @param polygon1EsriJson an Esri JSON polygon
+   * @param polygon2EsriJson another Esri JSON polygon
+   * @return true if the polygons are topologically equal
+   */
+  public boolean checkPolygonsAreTopologicallyEqual(String polygon1EsriJson, String polygon2EsriJson) {
+    var request = TopologicallyEqualRequest.newBuilder()
+        .setEsriJsonPolygon1(polygon1EsriJson)
+        .setEsriJsonPolygon2(polygon2EsriJson)
+        .build();
+
+    var response = arcgisClient.verifyPolygonsAreTopologicallyEqual(request);
+    return response.getIsTopologicallyEqual();
+  }
 }

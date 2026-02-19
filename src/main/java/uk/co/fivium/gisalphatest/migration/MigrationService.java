@@ -180,6 +180,30 @@ public class MigrationService {
     }
   }
 
+  public void verifySubareasTopologicallyEqualToBlock(Integer shapeSid, String testCase) {
+
+    var parentFeature = featureRepository.findByShapeSidIdAndTestCase(shapeSid, testCase).orElseThrow();
+    var childFeatures = featureRepository.findAllByParentFeatureId(parentFeature.getId());
+
+    var parentPolygon = grpcClientService.buildPolygon(getLinesFromFeature(
+        featureService.getEntityBackedFeature(parentFeature)).stream().map(Line::getLineJson).toList(),
+        parentFeature.getSrs()
+    );
+
+    var childPolygons = new ArrayList<String>();
+
+    for (var child : childFeatures) {
+      var childLines = getLinesFromFeature(featureService.getEntityBackedFeature(child)).stream().map(Line::getLineJson).toList();
+      childPolygons.add(grpcClientService.buildPolygon(childLines, child.getSrs()));
+    }
+
+    var childPolygonUnion = grpcClientService.unionPolygons(childPolygons);
+
+    var isEqual = grpcClientService.checkPolygonsAreTopologicallyEqual(parentPolygon, childPolygonUnion);
+
+    System.out.printf("Sub area union of parent shape %s are topologically equal: %s%n", parentFeature.getFeatureName(), isEqual);
+  }
+
   @Transactional
   public void migrateFeatureAreas() {
     var features = featureRepository.findAll();

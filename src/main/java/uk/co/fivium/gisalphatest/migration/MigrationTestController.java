@@ -60,6 +60,8 @@ public class MigrationTestController {
     polygonService.getPolygonsAsEsriJson(56973846, "GISA-36", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(56973884, "GISA-38", false).forEach(System.out::println);
 
+    migrationService.verifySubareasTopologicallyEqualToBlock(5610939, "GISA-36 and GISA-38");
+
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
 

@@ -16,6 +16,10 @@ import "GeneralizePolygonRequest.proto";
 import "GeneralizePolygonResponse.proto";
 import "MergeAndGeneralizeLinesRequest.proto";
 import "MergeAndGeneralizeLinesResponse.proto";
+import "ConvertEsriJsonPolygonToGeoJsonRequest.proto";
+import "ConvertEsriJsonPolygonToGeoJsonResponse.proto";
+import "TopologicallyEqualRequest.proto";
+import "TopologicallyEqualResponse.proto";
 import "ProjectPolygonsRequest.proto";
 import "ProjectPolygonsResponse.proto";
 
@@ -41,6 +45,8 @@ service ArcGisService {
   rpc generalizePolygon (GeneralizePolygonRequest) returns (GeneralizePolygonResponse) {};
   rpc mergeAndGeneralizeLines (MergeAndGeneralizeLinesRequest) returns (MergeAndGeneralizeLinesResponse) {};
   rpc projectPolygons (ProjectPolygonsRequest) returns (ProjectPolygonsResponse) {};
+  rpc convertEsriJsonPolygonToGeoJson (ConvertEsriJsonPolygonToGeoJsonRequest) returns (ConvertEsriJsonPolygonToGeoJsonResponse) {};
+  rpc verifyPolygonsAreTopologicallyEqual (TopologicallyEqualRequest) returns (TopologicallyEqualResponse) {};
 }
 
 message GeoJsonRequest {

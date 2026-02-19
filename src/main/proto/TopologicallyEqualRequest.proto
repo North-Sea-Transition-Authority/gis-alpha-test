@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message TopologicallyEqualRequest {
+  string esriJsonPolygon1 = 1;
+  string esriJsonPolygon2 = 2;
+}

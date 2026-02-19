@@ -28,6 +28,8 @@ import {
 import {projectPolygons} from "./handlers/project-polygons";
 import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesToPolygonsOperator.js";
 import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
+import {verifyPolygonsAreTopologicallyEqual} from "./handlers/verify-polygons-are-topologically-equal.js";
+import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json.js";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -108,6 +110,8 @@ function main() {
     mergePolygons,
     generalizePolygon,
     mergeAndGeneralizeLines,
+    convertEsriJsonPolygonToGeoJson,
+    verifyPolygonsAreTopologicallyEqual,
     projectPolygons
   });
 
