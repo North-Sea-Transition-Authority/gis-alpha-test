@@ -26,6 +26,7 @@
     "rollup": "^4.50.1",
     "rollup-plugin-css-only": "^4.5.5",
     "sass": "^1.52.3",
+    "proj4": "^2.19.10",
     "vue3-openlayers": "^12.1.1"
   }
 }
