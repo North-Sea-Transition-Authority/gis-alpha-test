@@ -37,7 +37,7 @@ public class MigrationTestController {
             new OracleShapeCompositeKey(56973797, "GISA-49-coastline"),
 
             new OracleShapeCompositeKey(5610939, "GISA-36 and GISA-38"),
-//            new OracleShapeCompositeKey(56973868, "GISA-36 and GISA-38")
+            new OracleShapeCompositeKey(56973868, "GISA-36 and GISA-38"),
             new OracleShapeCompositeKey(56973846, "GISA-36")
         )
     );
@@ -55,7 +55,7 @@ public class MigrationTestController {
     polygonService.getPolygonsAsEsriJson(56973797, "GISA-49-coastline", false).forEach(System.out::println);
 
     polygonService.getPolygonsAsEsriJson(5610939, "GISA-36 and GISA-38", false).forEach(System.out::println);
-//    polygonService.getPolygonsAsEsriJson(56973868, "GISA-36 and GISA-38", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(56973868, "GISA-36 and GISA-38", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(56973846, "GISA-36", false).forEach(System.out::println);
 
     return new ModelAndView("gis-alpha-test/layout/layout");

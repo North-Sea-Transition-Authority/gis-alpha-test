@@ -1,6 +1,7 @@
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import Point from "@arcgis/core/geometry/Point.js";
 import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOperator.js";
+import {LineWithNavigationTypeAndId} from "../handlers/point-connects-to-line-on-set-bearing";
 
 export const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.000000670;
 
@@ -51,4 +52,19 @@ export function getNearestParentStartAndEndNodes(
     const nearestStartPoint = proximityOperator.getNearestCoordinate(parent, childStartPoint);
     const nearestEndPoint = proximityOperator.getNearestCoordinate(parent, childEndPoint);
     return {nearestStartPoint, nearestEndPoint};
+}
+
+export const findLineConnectingToPoint = (point: Point, targetLineId: number, lines: LineWithNavigationTypeAndId[]): LineWithNavigationTypeAndId => {
+    return lines.find((lineWrapper: LineWithNavigationTypeAndId) => {
+        if (lineWrapper.id === targetLineId) {
+            return false;
+        }
+        const line = lineWrapper.line;
+        const startPoint = line.getPoint(0, 0);
+        const endPoint = line.getPoint(0, line.paths[0].length - 1);
+
+        if (point.equals(startPoint)) {
+            return true;
+        } else return point.equals(endPoint);
+    });
 }

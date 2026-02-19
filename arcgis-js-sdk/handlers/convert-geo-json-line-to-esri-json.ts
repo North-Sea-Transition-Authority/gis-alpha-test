@@ -8,7 +8,6 @@ import SpatialReference from "@arcgis/core/geometry/SpatialReference";
 import grpc from "@grpc/grpc-js";
 import {
     LineWithNavigationTypeAndId,
-    LineWithSetBearingAndId,
     NavigationType,
     pointConnectsToLoxodromeLineFollowingSetBearing,
     SetBearing
@@ -16,7 +15,12 @@ import {
 import * as intersectionOperator from "@arcgis/core/geometry/operators/intersectionOperator.js";
 import Multipoint from "@arcgis/core/geometry/Multipoint";
 import {GeoJsonLineInput} from "../generated/arcgisjs/GeoJsonLineInput.js";
-import {findParentLine, getNearestParentStartAndEndNodes, getStartAndEndNodes} from "../utils/line-utils.js";
+import {
+    findLineConnectingToPoint,
+    findParentLine,
+    getNearestParentStartAndEndNodes,
+    getStartAndEndNodes
+} from "../utils/line-utils.js";
 
 // 1 second in degrees (arc second) == 1° (degree) / 60'(minutes) / 60” (seconds)
 const ONE_ARC_SECOND = 1 / 3600.0;
@@ -73,29 +77,13 @@ export const batchConvertGeoJsonLinesToEsriJsonLines: ArcGisServiceHandlers['bat
         return;
     }
 
-    // Map of all the lines that are good to be returned
-    let processedLines = new Map<number, Polyline>();
-
-
-    // Create maps for connection order and id to polyline
-    const connectionOrderToId = new Map<number, number>();
-    linesWithType.forEach((lineInput) => {
-        connectionOrderToId.set(Number(lineInput.connectionOrder), lineInput.oracleLineSsid);
-    });
-
-    let connectionOrderArray = Array.from(connectionOrderToId.keys()).sort((a, b) => a - b);
-
-    for (const currentConnectionOrder of connectionOrderArray) {
-        const currentLineId = connectionOrderToId.get(currentConnectionOrder);
-        const child = idToLineWithNavigationWrapper.get(currentLineId);
+    for (const child of idToLineWithNavigationWrapper.values()) {
         const {line, navigationType, id} = child;
-
-        fixDirectionOfNextLine(idToLineWithNavigationWrapper, connectionOrderToId, currentConnectionOrder);
-
         // We want to process all the geodesic lines first and shift the start/end nodes of them and their connected lines.
         if (navigationType !== NavigationType.GEODESIC) {
             continue;
         }
+
         const {childStartPoint, childEndPoint} = getStartAndEndNodes(line);
         const parent = findParentLine(parentLineJsons, childStartPoint, childEndPoint);
         if (parent === undefined) {
@@ -112,59 +100,68 @@ export const batchConvertGeoJsonLinesToEsriJsonLines: ArcGisServiceHandlers['bat
         const pointsNeedShifting = Math.abs(nearestStartPoint.distance) !==  0 || Math.abs(nearestEndPoint.distance) !== 0;
         if (!pointsNeedShifting) {
             console.log("Start/end nodes don't need shifting")
-            const newGeodesicLine = mergeParentDensePointsIntoChildLine(parent, childStartPoint, childEndPoint, line.spatialReference);
-            processedLines.set(id, newGeodesicLine);
+            child.line = mergeParentDensePointsIntoChildLine(parent, childStartPoint, childEndPoint, line.spatialReference);
             continue;
         }
 
-        const newStartPoint = shiftNodeAndUpdateConnectedLine(childStartPoint, Array.from(idToLineWithNavigationWrapper.values()), parent, processedLines, "start");
-        const newEndPoint = shiftNodeAndUpdateConnectedLine(childEndPoint, Array.from(idToLineWithNavigationWrapper.values()), parent, processedLines, "end");
+        const newStartPoint = shiftNodeAndUpdateConnectedLine(
+            childStartPoint, nearestStartPoint.coordinate, id, idToLineWithNavigationWrapper, parent, "start"
+        );
+
+        const newEndPoint = shiftNodeAndUpdateConnectedLine(
+            childEndPoint, nearestEndPoint.coordinate, id, idToLineWithNavigationWrapper, parent, "end"
+        );
 
         const newGeodesicLine = mergeParentDensePointsIntoChildLine(parent, newStartPoint, newEndPoint, line.spatialReference);
-        processedLines.set(id, newGeodesicLine);
+        child.line = newGeodesicLine;
         console.log(`new geodesic  ${newGeodesicLine.paths} points`);
     }
 
-    // Not all loxodromes would've been updated in the loop above, so we want to add any we missed to our map of processed lines
-    for (const child of Array.from(idToLineWithNavigationWrapper.values())) {
-        const {line, id} = child;
-        if (processedLines.has(id)) {
-            continue;
-        }
-        processedLines.set(id, line);
-    }
+    // Fix direction of lines based on connection order
+    fixDirectionOfAllLines(idToLineWithNavigationWrapper, linesWithType);
 
     const convertedLines: { esriJsonString: string; oracleLineSsid: number }[] = [];
-    processedLines.forEach((value, key) => convertedLines.push({esriJsonString: JSON.stringify(value), oracleLineSsid: key}));
+    idToLineWithNavigationWrapper.forEach((value, key) => convertedLines.push({esriJsonString: JSON.stringify(value.line), oracleLineSsid: key}));
     callback(null, {lines: convertedLines});
 }
 
 function shiftNodeAndUpdateConnectedLine(
-    point: Point,
-    linesWithNavigationTypeAndId: LineWithNavigationTypeAndId[],
+    childPoint: Point,
+    nearestCoordinate: Point,
+    childId: number,
+    idToLineWrapper: Map<number, LineWithNavigationTypeAndId>,
     parentGeodesicLine: Polyline,
-    processedLines: Map<number, Polyline>,
     nodeType: "start" | "end"
 ): Point {
-    const lineOnBearing = pointConnectsToLoxodromeLineFollowingSetBearing(point, linesWithNavigationTypeAndId);
+    const linesWithNavigationTypeAndId = Array.from(idToLineWrapper.values());
+    const lineOnBearing = pointConnectsToLoxodromeLineFollowingSetBearing(childPoint, linesWithNavigationTypeAndId);
 
     if (lineOnBearing !== undefined) {
         console.log(`Line connected to ${nodeType} node is on set bearing`);
-        const newPoint = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(point, lineOnBearing.setBearing, parentGeodesicLine);
+        const newPoint = findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(childPoint, lineOnBearing.setBearing, parentGeodesicLine);
 
         if (newPoint === undefined) {
             throw new Error(`No intersection point for line ${lineOnBearing.id} on set bearing was found.`);
         }
 
         // Update the node on the connecting line and add it to the processed lines
-        const index = getIndexOfPointOnLine(point, lineOnBearing.line);
+        const index = getIndexOfPointOnLine(childPoint, lineOnBearing.line);
         lineOnBearing.line.setPoint(0, index, newPoint);
-        processedLines.set(lineOnBearing.id, lineOnBearing.line);
+        idToLineWrapper.get(lineOnBearing.id).line = lineOnBearing.line;
         return newPoint;
-    } else {
-        // TODO GISA-38: shift points not on bearing
-        return point;
     }
+
+    console.log(`Line connected to ${nodeType} node is NOT on set bearing`);
+    const lineConnectingToPoint = findLineConnectingToPoint(childPoint, childId, linesWithNavigationTypeAndId);
+
+    if (lineConnectingToPoint === undefined) {
+        throw new Error(`No line connecting to ${nodeType} node with id ${childId} was found.`);
+    }
+
+    const index = getIndexOfPointOnLine(childPoint, lineConnectingToPoint.line);
+    lineConnectingToPoint.line.setPoint(0, index, nearestCoordinate);
+    idToLineWrapper.get(lineConnectingToPoint.id).line = lineConnectingToPoint.line;
+    return nearestCoordinate;
 }
 
 function geoJsonLineInputToLinesWithNavigationTypeAndId(input: GeoJsonLineInput[], wkid: number): Map<number, LineWithNavigationTypeAndId> {
@@ -230,64 +227,67 @@ function findPointOfIntersectionBetweenChildPointOnBearingAndParentLine(childPoi
     return  (intersectionResult[0] as Multipoint).getPoint(0);
 }
 
-function fixDirectionOfNextLine(
+function fixDirectionOfAllLines(
     idToLineWithNavigationWrapper: Map<number, LineWithNavigationTypeAndId>,
-    connectionOrderToId: Map<number, number>,
-    currentConnectionOrder: number
+    linesWithType: GeoJsonLineInput[]
 ) {
-    let nextConnectionOrder = currentConnectionOrder + 1;
-    let nextLineId = connectionOrderToId.get(currentConnectionOrder + 1);
-    // If we're at the last line, connect back to the first line
-    if (nextLineId === undefined) {
-        nextConnectionOrder = Math.min(...connectionOrderToId.keys());
-        nextLineId = connectionOrderToId.get(nextConnectionOrder);
-    }
+    const connectionOrderToId = new Map<number, number>();
+    linesWithType.forEach((lineInput) => {
+        connectionOrderToId.set(Number(lineInput.connectionOrder), lineInput.oracleLineSsid);
+    });
 
-    if (nextLineId !== undefined && idToLineWithNavigationWrapper.has(nextLineId)) {
-        const currentLineId = connectionOrderToId.get(currentConnectionOrder);
-        const currentLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(currentLineId);
-        const currentStartPoint = currentLineWithNavigationWrapper.line.getPoint(0, 0);
-        const currentEndPoint = currentLineWithNavigationWrapper.line.getPoint(0, currentLineWithNavigationWrapper.line.paths[0].length - 1);
+    for (const currentConnectionOrder of Array.from(connectionOrderToId.keys()).sort((a, b) => a - b)) {
+        let nextConnectionOrder = currentConnectionOrder + 1;
+        let nextLineId = connectionOrderToId.get(currentConnectionOrder + 1);
+        // If we're at the last line, connect back to the first line
+        if (nextLineId === undefined) {
+            nextConnectionOrder = Math.min(...connectionOrderToId.keys());
+            nextLineId = connectionOrderToId.get(nextConnectionOrder);
+        }
 
-        const nextLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(nextLineId);
-        const nextStartPoint = nextLineWithNavigationWrapper.line.getPoint(0, 0);
-        const nextEndPoint = nextLineWithNavigationWrapper.line.getPoint(0, nextLineWithNavigationWrapper.line.paths[0].length - 1);
+        if (nextLineId !== undefined && idToLineWithNavigationWrapper.has(nextLineId)) {
+            const currentLineId = connectionOrderToId.get(currentConnectionOrder);
+            const currentLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(currentLineId);
+            const currentStartPoint = currentLineWithNavigationWrapper.line.getPoint(0, 0);
+            const currentEndPoint = currentLineWithNavigationWrapper.line.getPoint(0, currentLineWithNavigationWrapper.line.paths[0].length - 1);
 
-        console.log(`Checking line ${currentLineId} (order ${currentConnectionOrder}) -> line ${nextLineId} (order ${nextConnectionOrder})`);
-        console.log(`Current start point: [${currentStartPoint.x}, ${currentStartPoint.y}]`);
-        console.log(`Current end point: [${currentEndPoint.x}, ${currentEndPoint.y}]`);
-        console.log(`Next start point: [${nextStartPoint.x}, ${nextStartPoint.y}]`);
-        console.log(`Next end point: [${nextEndPoint.x}, ${nextEndPoint.y}]`);
+            const nextLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(nextLineId);
+            const nextStartPoint = nextLineWithNavigationWrapper.line.getPoint(0, 0);
+            const nextEndPoint = nextLineWithNavigationWrapper.line.getPoint(0, nextLineWithNavigationWrapper.line.paths[0].length - 1);
 
-        // Check if the end point of current line matches the start point of next line
-        const pointsMatch = isMatching(currentEndPoint, nextStartPoint);
+            console.log(`Checking line ${currentLineId} (order ${currentConnectionOrder}) -> line ${nextLineId} (order ${nextConnectionOrder})`);
+            console.log(`Current start point: [${currentStartPoint.x}, ${currentStartPoint.y}]`);
+            console.log(`Current end point: [${currentEndPoint.x}, ${currentEndPoint.y}]`);
+            console.log(`Next start point: [${nextStartPoint.x}, ${nextStartPoint.y}]`);
+            console.log(`Next end point: [${nextEndPoint.x}, ${nextEndPoint.y}]`);
 
-        console.log(`Points match: ${pointsMatch}`);
+            // Check if the end point of current line matches the start point of next line
+            const pointsMatch = isMatching(currentEndPoint, nextStartPoint);
 
-        // If they don't match, reverse the current line
-        if (!pointsMatch) {
-            console.log(`Reversing line ${nextConnectionOrder}`);
-            const reversedPath = [...nextLineWithNavigationWrapper.line.paths[0]].reverse();
-            const reversedLine = new Polyline({
-                paths: [reversedPath],
-                spatialReference: nextLineWithNavigationWrapper.line.spatialReference
-            });
+            console.log(`Points match: ${pointsMatch}`);
 
-            const newNextStartPoint = reversedLine.getPoint(0, 0);
-            if (isMatching(currentEndPoint, newNextStartPoint)) {
-                console.error(`Lines do not match after reversing. Line ids, ${currentLineId}, ${nextLineId}`);
+            // If they don't match, reverse the current line
+            if (!pointsMatch) {
+                console.log(`Reversing line ${nextConnectionOrder}`);
+                const reversedPath = [...nextLineWithNavigationWrapper.line.paths[0]].reverse();
+                const reversedLine = new Polyline({
+                    paths: [reversedPath],
+                    spatialReference: nextLineWithNavigationWrapper.line.spatialReference
+                });
+
+                const newNextStartPoint = reversedLine.getPoint(0, 0);
+                if (!isMatching(currentEndPoint, newNextStartPoint)) {
+                    console.error(`Lines do not match after reversing. Line ids, ${currentLineId}, ${nextLineId}`);
+                }
+                idToLineWithNavigationWrapper.get(nextLineId).line =  reversedLine;
             }
-            idToLineWithNavigationWrapper.set(nextLineId, {
-                line: reversedLine,
-                navigationType: nextLineWithNavigationWrapper.navigationType,
-                id: nextLineWithNavigationWrapper.id,
-            });
         }
     }
 }
 
 function isMatching(point1: Point, point2: Point): boolean {
-    return point1.x === point2.x && point1.y === point2.y;
+    console.log(`is matching: ${point1.x} === ${point2.x} && ${point1.y} === ${point2.y};`)
+    return Math.abs(point1.x - point2.x) < 1e-10 && Math.abs(point1.y - point2.y) < 1e-10;
 }
 
 
