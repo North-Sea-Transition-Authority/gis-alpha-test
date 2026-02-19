@@ -28,7 +28,7 @@ export function findParentLine(
             nearestEndPoint
         } = getNearestParentStartAndEndNodes(possibleParent, childStartPoint, childEndPoint)
 
-        if (nearestStartPoint.distance < closestStartDistance && nearestEndPoint.distance < closestEndDistance) {
+        if (nearestStartPoint.distance <= closestStartDistance && nearestEndPoint.distance <= closestEndDistance) {
             closestStartDistance = nearestStartPoint.distance;
             closestEndDistance = nearestEndPoint.distance;
             parent = possibleParent;
