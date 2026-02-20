@@ -52,6 +52,8 @@ public class SplitService {
     migrationService.migrateFeatureAreas();
 
     var migratedTargetPolygon = featureRepository.findAllByShapeSidId(oracleShapeTarget.getShapeSidId()).getFirst();
+    polygonService.getPolygonsAsEsriJson(migratedTargetPolygon, false).forEach(System.out::println);
+
     String geoJsonSplitLine = oracleCutLineRepository.findByTestCase(oracleCutLineTestCase)
         .get()
         .getCutLineGeojson();
@@ -63,6 +65,11 @@ public class SplitService {
 
     LOGGER.info("Results:");
     resultFeatures.forEach(feature -> LOGGER.info("feature: {}", feature.getId()));
+
+    resultFeatures.forEach(feature -> {
+      polygonService.getPolygonsAsEsriJson(feature, false).forEach(System.out::println);
+    });
+
   }
 
   private void validateAreaAgainstOracleExpected(List<Feature> resultFeatures,

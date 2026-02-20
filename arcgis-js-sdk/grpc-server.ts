@@ -29,6 +29,8 @@ import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesT
 import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
 import {verifyPolygonsAreTopologicallyEqual} from "./handlers/verify-polygons-are-topologically-equal.js";
 import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json.js";
+import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
+import * as disjointOperator from "@arcgis/core/geometry/operators/disjointOperator.js";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -83,14 +85,20 @@ const splitPolygon: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => 
   const cutter = Polyline.fromJSON(JSON.parse(call.request.esriJsonCutter));
 
   const cutResults = cutOperator.execute(target, cutter) as Polygon[];
-  const polygons = (cutResults || []).map((poly) => {
+
+  // cutresults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
+  // this operation splits those disjointed polygons into separate polygons
+  const polygons: Polygon[] = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
+
+  console.log(`Created ${polygons.length} pieces`);
+
+  const response = (polygons || []).map((poly) => {
     return {
       esriJsonPolygon: JSON.stringify(poly.toJSON())
     };
   });
 
-  console.log(`Created ${polygons.length} pieces`);
-  callback(null, { polygons });
+  callback(null, { polygons: response });
 }
 
 function main() {

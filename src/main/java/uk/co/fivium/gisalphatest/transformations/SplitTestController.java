@@ -66,4 +66,21 @@ public class SplitTestController {
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  //GISA-70 split an onshore shape
+  @GetMapping("/split5")
+  public ModelAndView splitPolygon5() {
+    String testCase = "GISA-70";
+    splitService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57011879, testCase),
+        List.of(
+            new OracleShapeCompositeKey(57015532, testCase),
+            new OracleShapeCompositeKey(57015517, testCase),
+            new OracleShapeCompositeKey(57015522, testCase)
+        ),
+        testCase
+    );
+
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }

@@ -29,9 +29,12 @@ public class FeatureAreaService {
 
   @Transactional
   public void calculateFeatureArea(Feature newFeature) {
-    List<String> polygonsAsEsriJson = polygonService.getPolygonsAsEsriJson(newFeature, true);
+    var isOnshore = Srs.BNG.getValue().equals(newFeature.getSrs());
+
+    // We don't need to densify loxodrome lines that are onshore as there is no earth curvature taken into account.
+    List<String> polygonsAsEsriJson = polygonService.getPolygonsAsEsriJson(newFeature, !isOnshore);
     String combinedPolygon = grpcClientService.unionPolygons(polygonsAsEsriJson);
-    double areaProcessed = Math.abs(grpcClientService.calculatePolygonArea(combinedPolygon, Srs.BNG.getValue().equals(newFeature.getSrs())));
+    double areaProcessed = Math.abs(grpcClientService.calculatePolygonArea(combinedPolygon, isOnshore));
     newFeature.setFeatureArea(BigDecimal.valueOf(areaProcessed));
     featureRepository.save(newFeature);
   }
