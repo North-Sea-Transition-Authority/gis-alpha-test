@@ -53,4 +53,17 @@ public class SplitTestController {
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  //GISA-68 Split a geodesic treaty boundary shape
+  @GetMapping("/split4")
+  public ModelAndView splitPolygon4() {
+    String testCase = "GISA-68";
+    splitService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57015751, testCase),
+        List.of(new OracleShapeCompositeKey(57021455, testCase), new OracleShapeCompositeKey(57021450, testCase)),
+        testCase
+    );
+
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }
