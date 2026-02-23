@@ -99,4 +99,20 @@ public class SplitTestController {
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  //GISA-72 split by creating new hole in a shape
+  @GetMapping("/split7")
+  public ModelAndView splitPolygon7() {
+    String testCase = "GISA-72";
+    splitService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57475726, testCase),
+        List.of(
+            new OracleShapeCompositeKey(57476564, testCase),
+            new OracleShapeCompositeKey(57476569, testCase)
+        ),
+        testCase
+    );
+
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }
