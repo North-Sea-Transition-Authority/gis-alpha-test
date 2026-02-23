@@ -231,55 +231,61 @@ function fixDirectionOfAllLines(
     idToLineWithNavigationWrapper: Map<number, LineWithNavigationTypeAndId>,
     linesWithType: GeoJsonLineInput[]
 ) {
-    const connectionOrderToId = new Map<number, number>();
+    const ringToConnectionOrderToId = new Map<number, Map<number, number>>();
     linesWithType.forEach((lineInput) => {
-        connectionOrderToId.set(Number(lineInput.connectionOrder), lineInput.oracleLineSsid);
+        const ringNumber = Number(lineInput.ringNumber);
+        if (!ringToConnectionOrderToId.has(ringNumber)) {
+            ringToConnectionOrderToId.set(ringNumber, new Map<number, number>());
+        }
+        ringToConnectionOrderToId.get(ringNumber).set(Number(lineInput.connectionOrder), lineInput.oracleLineSsid);
     });
 
-    for (const currentConnectionOrder of Array.from(connectionOrderToId.keys()).sort((a, b) => a - b)) {
-        let nextConnectionOrder = currentConnectionOrder + 1;
-        let nextLineId = connectionOrderToId.get(currentConnectionOrder + 1);
-        // If we're at the last line, connect back to the first line
-        if (nextLineId === undefined) {
-            nextConnectionOrder = Math.min(...connectionOrderToId.keys());
-            nextLineId = connectionOrderToId.get(nextConnectionOrder);
-        }
+    for (const [ringNumber, connectionOrderToId] of ringToConnectionOrderToId) {
+        for (const currentConnectionOrder of Array.from(connectionOrderToId.keys()).sort((a, b) => a - b)) {
+            let nextConnectionOrder = currentConnectionOrder + 1;
+            let nextLineId = connectionOrderToId.get(currentConnectionOrder + 1);
+            // If we're at the last line, connect back to the first line
+            if (nextLineId === undefined) {
+                nextConnectionOrder = Math.min(...connectionOrderToId.keys());
+                nextLineId = connectionOrderToId.get(nextConnectionOrder);
+            }
 
-        if (nextLineId !== undefined && idToLineWithNavigationWrapper.has(nextLineId)) {
-            const currentLineId = connectionOrderToId.get(currentConnectionOrder);
-            const currentLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(currentLineId);
-            const currentStartPoint = currentLineWithNavigationWrapper.line.getPoint(0, 0);
-            const currentEndPoint = currentLineWithNavigationWrapper.line.getPoint(0, currentLineWithNavigationWrapper.line.paths[0].length - 1);
+            if (nextLineId !== undefined && idToLineWithNavigationWrapper.has(nextLineId)) {
+                const currentLineId = connectionOrderToId.get(currentConnectionOrder);
+                const currentLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(currentLineId);
+                const currentStartPoint = currentLineWithNavigationWrapper.line.getPoint(0, 0);
+                const currentEndPoint = currentLineWithNavigationWrapper.line.getPoint(0, currentLineWithNavigationWrapper.line.paths[0].length - 1);
 
-            const nextLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(nextLineId);
-            const nextStartPoint = nextLineWithNavigationWrapper.line.getPoint(0, 0);
-            const nextEndPoint = nextLineWithNavigationWrapper.line.getPoint(0, nextLineWithNavigationWrapper.line.paths[0].length - 1);
+                const nextLineWithNavigationWrapper = idToLineWithNavigationWrapper.get(nextLineId);
+                const nextStartPoint = nextLineWithNavigationWrapper.line.getPoint(0, 0);
+                const nextEndPoint = nextLineWithNavigationWrapper.line.getPoint(0, nextLineWithNavigationWrapper.line.paths[0].length - 1);
 
-            console.log(`Checking line ${currentLineId} (order ${currentConnectionOrder}) -> line ${nextLineId} (order ${nextConnectionOrder})`);
-            console.log(`Current start point: [${currentStartPoint.x}, ${currentStartPoint.y}]`);
-            console.log(`Current end point: [${currentEndPoint.x}, ${currentEndPoint.y}]`);
-            console.log(`Next start point: [${nextStartPoint.x}, ${nextStartPoint.y}]`);
-            console.log(`Next end point: [${nextEndPoint.x}, ${nextEndPoint.y}]`);
+                console.log(`Ring ${ringNumber}: Checking line ${currentLineId} (order ${currentConnectionOrder}) -> line ${nextLineId} (order ${nextConnectionOrder})`);
+                console.log(`Current start point: [${currentStartPoint.x}, ${currentStartPoint.y}]`);
+                console.log(`Current end point: [${currentEndPoint.x}, ${currentEndPoint.y}]`);
+                console.log(`Next start point: [${nextStartPoint.x}, ${nextStartPoint.y}]`);
+                console.log(`Next end point: [${nextEndPoint.x}, ${nextEndPoint.y}]`);
 
-            // Check if the end point of current line matches the start point of next line
-            const pointsMatch = isMatching(currentEndPoint, nextStartPoint);
+                // Check if the end point of current line matches the start point of next line
+                const pointsMatch = isMatching(currentEndPoint, nextStartPoint);
 
-            console.log(`Points match: ${pointsMatch}`);
+                console.log(`Points match: ${pointsMatch}`);
 
-            // If they don't match, reverse the current line
-            if (!pointsMatch) {
-                console.log(`Reversing line ${nextConnectionOrder}`);
-                const reversedPath = [...nextLineWithNavigationWrapper.line.paths[0]].reverse();
-                const reversedLine = new Polyline({
-                    paths: [reversedPath],
-                    spatialReference: nextLineWithNavigationWrapper.line.spatialReference
-                });
+                // If they don't match, reverse the current line
+                if (!pointsMatch) {
+                    console.log(`Reversing line ${nextConnectionOrder}`);
+                    const reversedPath = [...nextLineWithNavigationWrapper.line.paths[0]].reverse();
+                    const reversedLine = new Polyline({
+                        paths: [reversedPath],
+                        spatialReference: nextLineWithNavigationWrapper.line.spatialReference
+                    });
 
-                const newNextStartPoint = reversedLine.getPoint(0, 0);
-                if (!isMatching(currentEndPoint, newNextStartPoint)) {
-                    console.error(`Lines do not match after reversing. Line ids, ${currentLineId}, ${nextLineId}`);
+                    const newNextStartPoint = reversedLine.getPoint(0, 0);
+                    if (!isMatching(currentEndPoint, newNextStartPoint)) {
+                        console.error(`Lines do not match after reversing. Line ids, ${currentLineId}, ${nextLineId}`);
+                    }
+                    idToLineWithNavigationWrapper.get(nextLineId).line =  reversedLine;
                 }
-                idToLineWithNavigationWrapper.get(nextLineId).line =  reversedLine;
             }
         }
     }

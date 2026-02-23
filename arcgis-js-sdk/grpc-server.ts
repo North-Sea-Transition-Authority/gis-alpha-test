@@ -5,7 +5,6 @@ import Polyline from "@arcgis/core/geometry/Polyline.js";
 import type {ProtoGrpcType} from "./generated/ArcGisJs.ts";
 import type {ArcGisServiceHandlers} from "./generated/arcgisjs/ArcGisService.ts";
 import Polygon from "@arcgis/core/geometry/Polygon.js";
-import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import {unionPolygons} from "./handlers/union-polygons";
 import {calculatePolygonArea} from "./handlers/calculate-polygon-area";
@@ -64,11 +63,15 @@ const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => 
 
   const polygons = linesToPolygonsOperator.executeMany(polylines);
 
+  // We only want the first polygon, if there is more than one polygon, then they will be the holes of a polygon with holes
+  // and will already be included in the first polygon.
+  const polygon = polygons[0];
+  polygon.spatialReference = {wkid: call.request.srs};
+
   console.log(`Built ${polygons.length} polygons`);
 
-  const unionedPolygon = unionOperator.executeMany(polygons) as Polygon;
+  const simplifiedPolygon = simplifyOperator.execute(polygon) as Polygon;
 
-  const simplifiedPolygon = simplifyOperator.execute(unionedPolygon) as Polygon;
 
   callback(null, {esriJsonString: JSON.stringify(simplifiedPolygon.toJSON())})
 }

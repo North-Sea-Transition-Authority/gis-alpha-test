@@ -6,5 +6,6 @@ message GeoJsonLineInput {
   string geoJsonString = 1;
   bool isGeodesic = 2;
   int32 oracleLineSsid = 3;
-  int64 connectionOrder = 4;
+  int32 connectionOrder = 4;
+  int32 ringNumber = 5;
 }

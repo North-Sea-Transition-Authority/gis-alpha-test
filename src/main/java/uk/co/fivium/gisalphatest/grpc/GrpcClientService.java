@@ -102,7 +102,8 @@ public class GrpcClientService {
           .setGeoJsonString(oracleLine.getLineGeojson())
           .setIsGeodesic(oracleLine.getLineNavigationType() == LineNavigationType.GEODESIC)
           .setOracleLineSsid(oracleLine.getLineSidId().intValue())
-          .setConnectionOrder(oracleLine.getConnectionOrder())
+          .setConnectionOrder(oracleLine.getConnectionOrder().intValue())
+          .setRingNumber(entry.ringNumber())
           .build()
       );
     }
