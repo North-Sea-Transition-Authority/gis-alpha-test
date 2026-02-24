@@ -1,6 +1,6 @@
 <template>
   <ol-map class="map" ref="mapRef" tabindex="0">
-    <ol-view :center="[0, 0]" :zoom="2"/>
+    <ol-view :center="[0, 0]" :zoom="2"  :maxZoom="15"/>
 
     <ol-tile-layer>
       <ol-source-osm />
@@ -14,7 +14,7 @@
     <ol-vector-layer>
       <ol-source-vector>
         <ol-feature v-for="point in points" :key="point.id">
-          <ol-geom-point :coordinates="point.wgs84Coordinates" />
+          <ol-geom-point :coordinates="point.coordinates" />
           <ol-style>
             <ol-style-circle :radius="3">
               <ol-style-fill color="grey" />
@@ -23,7 +23,56 @@
         </ol-feature>
       </ol-source-vector>
     </ol-vector-layer>
+
+    <ol-vector-layer>
+      <ol-source-vector>
+        <ol-feature v-if="hoveredPoint">
+          <ol-geom-point :coordinates="hoveredPoint.coordinates" />
+          <ol-style>
+            <ol-style-circle :radius="3">
+              <ol-style-fill color="red" />
+            </ol-style-circle>
+          </ol-style>
+        </ol-feature>
+      </ol-source-vector>
+    </ol-vector-layer>
+
+    <ol-vector-layer>
+      <ol-source-vector>
+        <ol-feature v-if="selectedPoint">
+          <ol-geom-point :coordinates="selectedPoint.coordinates" />
+          <ol-style>
+            <ol-style-circle :radius="4">
+              <ol-style-fill color="blue" />
+            </ol-style-circle>
+          </ol-style>
+        </ol-feature>
+      </ol-source-vector>
+    </ol-vector-layer>
+
+    <ol-vector-layer>
+      <ol-source-vector>
+        <ol-feature v-if="previewLine">
+          <ol-geom-line-string :coordinates="previewLine.coordinates" />
+          <ol-style>
+            <ol-style-stroke color="red" :width="2" :lineDash="[5, 5]" />
+          </ol-style>
+        </ol-feature>
+      </ol-source-vector>
+    </ol-vector-layer>
+
+    <ol-vector-layer>
+      <ol-source-vector>
+        <ol-feature v-for="line in lines" :key="line.id">
+          <ol-geom-line-string :coordinates="line.coordinates" />
+          <ol-style>
+            <ol-style-stroke color="red" :width="2" />
+          </ol-style>
+        </ol-feature>
+      </ol-source-vector>
+    </ol-vector-layer>
   </ol-map>
+  <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4" @click="deleteLines">Clear lines</button>
 </template>
 
 <script setup>
@@ -40,12 +89,17 @@ import {debounce} from './debounce';
 proj4.defs('EPSG:4230', '+proj=longlat +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +no_defs');
 
 const mapRef = ref(null);
+const points = ref([]);
+const selectedPoint = ref(null);
+const hoveredPoint = ref(null);
+const previewLine = ref(null);
+const lines = ref([]);
+
 const esriJson = new EsriJSON();
 const quadrantUrl = buildServiceUrl('UKCS_quadrants_(WGS84)', 'QUADRANT');
 const quadBlockUrl = buildServiceUrl('UKCS_blocks_(WGS84)', 'BLOCK_REF');
-const MIN_SNAP_ZOOM = 11;
 
-const points = ref([]);
+const MIN_SNAP_ZOOM = 11;
 
 //allow us to use geographic coordinates on the map
 useGeographic()
@@ -78,7 +132,7 @@ const regeneratePoints = () => {
       const [wgs84Lon, wgs84Lat] = proj4('EPSG:4230', 'EPSG:4326', [ed50Lon, ed50Lat]);
       pointsArray.push({
         id: `${ed50Lon},${ed50Lat}`,
-        wgs84Coordinates: [wgs84Lon, wgs84Lat],
+        coordinates: [wgs84Lon, wgs84Lat],
         ed50Coordinates: [ed50Lon, ed50Lat],
       });
     }
@@ -108,6 +162,10 @@ onMounted(() => {
   const debouncedRegenerate = debounce(regeneratePoints, 200);
   map.getView().on('change:resolution', debouncedRegenerate);
   map.getView().on('change:center', debouncedRegenerate);
+
+  map.on('pointermove', handleMouseMove);
+  map.on('click', handleMapClick);
+  map.getViewport().addEventListener('pointerleave', handleMouseLeave);
 });
 
 function buildServiceUrl(resourcePath, outFields = '') {
@@ -146,6 +204,13 @@ function createPaginatedVectorSource(serviceUrl) {
       }
     },
   });
+}
+
+function deleteLines() {
+  lines.value = [];
+  selectedPoint.value = null;
+  hoveredPoint.value = null;
+  previewLine.value = null;
 }
 
 const quadrantStyle = new Style({
@@ -187,6 +252,81 @@ function fitToExtent(event) {
     });
   }
 }
+
+const handleMouseMove = (event) => {
+  const mouseCoordinates = event.coordinate;
+
+  if (!selectedPoint.value) {
+    hoveredPoint.value = findNearestPoint(mouseCoordinates);
+    return;
+  }
+
+  const nearestAlignedPoint = findNearestPoint(mouseCoordinates, (point) => point.id !== selectedPoint.value.id && pointsAreAligned(point, selectedPoint.value));
+
+  hoveredPoint.value = nearestAlignedPoint;
+
+  if (nearestAlignedPoint) {
+    previewLine.value = {
+      coordinates: [selectedPoint.value.coordinates, nearestAlignedPoint.coordinates]
+    };
+  } else {
+    previewLine.value = null;
+  }
+};
+
+const findNearestPoint = (coordinates, filter) => {
+  let nearestPoint = null;
+  let minDistance = Infinity;
+
+  for (const point of points.value) {
+    if (filter && !filter(point)) {
+      continue;
+    }
+
+    const lonDelta = point.coordinates[0] - coordinates[0];
+    const latDelta = point.coordinates[1] - coordinates[1];
+    const distance = Math.sqrt(lonDelta * lonDelta + latDelta * latDelta);
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestPoint = point;
+    }
+  }
+
+  return nearestPoint;
+};
+
+const pointsAreAligned = (pointA, pointB) => pointA.ed50Coordinates[0] === pointB.ed50Coordinates[0]
+    || pointA.ed50Coordinates[1] === pointB.ed50Coordinates[1];
+
+const handleMapClick = () => {
+  if (!selectedPoint.value) {
+    selectedPoint.value = hoveredPoint.value;
+    hoveredPoint.value = null;
+    return;
+  }
+
+  if (!hoveredPoint.value
+      || hoveredPoint.value.id === selectedPoint.value.id
+      || !pointsAreAligned(hoveredPoint.value, selectedPoint.value)) {
+    return;
+  }
+
+  lines.value.push({
+    id: `${selectedPoint.value.id},${hoveredPoint.value.id}`,
+    coordinates: [selectedPoint.value.coordinates, hoveredPoint.value.coordinates]
+  });
+
+  selectedPoint.value = hoveredPoint.value;
+  hoveredPoint.value = null;
+  previewLine.value = null;
+};
+
+const handleMouseLeave = () => {
+  hoveredPoint.value = null;
+  previewLine.value = null;
+};
+
 </script>
 
 <style scoped>
