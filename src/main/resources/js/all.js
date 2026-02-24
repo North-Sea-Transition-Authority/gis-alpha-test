@@ -10,7 +10,9 @@ for (const element of document.querySelectorAll("[data-module='map']")) {
 }
 
 for (const element of document.querySelectorAll("[data-module='feature-map']")) {
-  const app = createApp(FeatureMap);
+  const app = createApp(FeatureMap, {
+    featureIds: element.dataset.featureIds
+  });
   app.use(OpenLayersMap);
   app.mount(element);
 }

@@ -7,7 +7,7 @@
     </ol-tile-layer>
 
     <ol-vector-layer :style="featureStyle" :declutter="true">
-      <ol-source-vector :url="'/feature-map/esrijson'" :format="esriJson" @featuresloadend="fitToExtent">
+      <ol-source-vector :url="featuresUrl" :format="esriJson" @featuresloadend="fitToExtent">
       </ol-source-vector>
     </ol-vector-layer>
 
@@ -88,18 +88,21 @@ import {debounce} from './debounce';
 //definition for ED50 (EPSG:4230) as per https://spatialreference.org/ref/epsg/4230/
 proj4.defs('EPSG:4230', '+proj=longlat +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +no_defs');
 
+const props = defineProps({
+  featureIds: String
+})
+
 const mapRef = ref(null);
 const points = ref([]);
 const selectedPoint = ref(null);
 const hoveredPoint = ref(null);
 const previewLine = ref(null);
 const lines = ref([]);
-
 const esriJson = new EsriJSON();
 const quadrantUrl = buildServiceUrl('UKCS_quadrants_(WGS84)', 'QUADRANT');
 const quadBlockUrl = buildServiceUrl('UKCS_blocks_(WGS84)', 'BLOCK_REF');
-
 const MIN_SNAP_ZOOM = 11;
+const featuresUrl = `/feature-map/esrijson?featureIds=${encodeURIComponent(props.featureIds)}`;
 
 //allow us to use geographic coordinates on the map
 useGeographic()

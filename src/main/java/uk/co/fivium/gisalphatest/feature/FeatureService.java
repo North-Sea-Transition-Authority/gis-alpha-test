@@ -2,11 +2,13 @@ package uk.co.fivium.gisalphatest.feature;
 
 import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.co.fivium.gisalphatest.util.StreamUtil;
 
 @Service
 public class FeatureService {
@@ -97,5 +99,11 @@ public class FeatureService {
     line.setLineJson(lineJson);
     lineRepository.save(line);
     return line;
+  }
+
+  public Map<String, String> getFeatureIdNameMap() {
+    return featureRepository.findAll().stream()
+        .sorted(Comparator.comparing(Feature::getFeatureName))
+        .collect(StreamUtil.toLinkedHashMap(feature -> feature.getId().toString(), Feature::getFeatureName));
   }
 }

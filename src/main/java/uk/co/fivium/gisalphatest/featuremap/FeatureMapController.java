@@ -6,13 +6,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
+import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureType;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
@@ -41,14 +45,24 @@ class FeatureMapController {
   }
 
   @GetMapping
-  public ModelAndView getFeatureMap() {
-    return new ModelAndView("gis-alpha-test/featuremap/featureMap");
+  public ModelAndView getFeatureMap(@RequestParam(required = false) List<UUID> featureIds) {
+    if (CollectionUtils.isEmpty(featureIds)) {
+      featureIds = featureRepository.findAll().stream()
+          .map(Feature::getId)
+          .toList();
+    }
+
+    List<String> idsAsString = featureIds.stream()
+        .map(UUID::toString)
+        .toList();
+    return new ModelAndView("gis-alpha-test/featuremap/featureMap")
+        .addObject("featureIds", idsAsString);
   }
 
   @GetMapping("/esrijson")
   @ResponseBody
-  public Map<String, Object> getEsriJson() throws JsonProcessingException {
-    var features = featureRepository.findAll();
+  public Map<String, Object> getFeaturesEsriJson(@RequestParam List<UUID> featureIds) throws JsonProcessingException {
+    var features = featureRepository.findAllById(featureIds);
 
     List<Map<String, Object>> geoJsonFeatures = new ArrayList<>();
 
