@@ -40,4 +40,18 @@ public class MergeTestController {
     );
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  // GISA-74 merge an offshore coastline shape
+  @GetMapping("/merge3")
+  public ModelAndView merge3() {
+    var testCase = "GISA-74";
+    testTransformationService.testOracleMerge(
+        List.of(
+            new OracleShapeCompositeKey(57368699, testCase),
+            new OracleShapeCompositeKey(57367793, testCase)
+        ),
+        new OracleShapeCompositeKey(57442868, testCase)
+    );
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }
