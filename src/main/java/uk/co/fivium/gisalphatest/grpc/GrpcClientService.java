@@ -2,8 +2,10 @@ package uk.co.fivium.gisalphatest.grpc;
 
 import arcgisjs.BatchConvertGeoJsonToEsriJsonRequest;
 import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
-import arcgisjs.GeneralizePolygonRequestOuterClass;
+import arcgisjs.CoordinatePairOuterClass;
+import arcgisjs.CoordinatesToPolylineRequestOuterClass;
 import arcgisjs.EsriJsonLineWithNavigationTypeAndIdOuterClass;
+import arcgisjs.GeneralizePolygonRequestOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
@@ -35,6 +37,8 @@ import com.example.grpc.SplitPolygonRequest;
 import com.example.grpc.SplitPolygonResponse;
 import com.example.grpc.UnionPolygonsRequest;
 import com.example.grpc.UnionPolygonsResponse;
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +48,7 @@ import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.feature.Line;
 import uk.co.fivium.gisalphatest.feature.LineNavigationType;
 import uk.co.fivium.gisalphatest.migration.OracleBoundaryLineWithRing;
+import uk.co.fivium.gisalphatest.migration.Srs;
 import uk.co.fivium.gisalphatest.transformations.LineWrapper;
 
 @Service
@@ -409,5 +414,28 @@ public class GrpcClientService {
 
     var response = arcgisClient.verifyPolygonsAreTopologicallyEqual(request);
     return response.getIsTopologicallyEqual();
+  }
+
+  /**
+   * Take a collection of ordered points to create a polyline out of them.
+   * @param ed50lineCoordinates List of coordinate pairs that represent the paths of the line.
+   * @return an esriJson string representing a polyline in ED50
+   */
+  public String convertPointsToEd50Polyline(List<List<List<BigDecimal>>> ed50lineCoordinates) {
+    var coordinatePairs = ed50lineCoordinates.stream()
+        .flatMap(Collection::stream)
+        .map(coordinatePair -> CoordinatePairOuterClass.CoordinatePair.newBuilder()
+            .setX(coordinatePair.getFirst().doubleValue())
+            .setY(coordinatePair.getLast().doubleValue())
+            .build())
+        .toList();
+    var request = CoordinatesToPolylineRequestOuterClass.CoordinatesToPolylineRequest.newBuilder()
+        .addAllCoordinates(coordinatePairs)
+        .setSrsWkid(Srs.ED50.getValue())
+        .build();
+
+    var response = arcgisClient.coordinatesToPolyline(request);
+
+    return response.getPolylineEsriJson();
   }
 }

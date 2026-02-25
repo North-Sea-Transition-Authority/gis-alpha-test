@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -103,7 +104,7 @@ public class SplitService {
 
   @Transactional
   public List<Feature> splitPolygon(Feature target, String cutterLineEsriJson) {
-    var esriJsonPolygon = polygonService.getPolygonsAsEsriJson(target.getShapeSidId(), target.getTestCase(), false).getFirst();
+    var esriJsonPolygon = polygonService.getPolygonsAsEsriJson(target, false).getFirst();
 
     LOGGER.info("target polygon:");
     LOGGER.info(esriJsonPolygon);
@@ -121,5 +122,16 @@ public class SplitService {
     });
 
     return resultFeatures;
+  }
+
+  public boolean canTriggerSplit(List<UUID> featureIds, String cutterLineEsriJson) {
+    List<Feature> features = featureRepository.findAllById(featureIds);
+    List<String> esriJsonPolygons = new ArrayList<>();
+    for (Feature feature : features) {
+      esriJsonPolygons.addAll(polygonService.getPolygonsAsEsriJson(feature, false));
+    }
+
+    return esriJsonPolygons.stream()
+        .anyMatch(esriJsonPolygon -> grpcClientService.splitPolygon(esriJsonPolygon, cutterLineEsriJson).size() > 1);
   }
 }

@@ -1,0 +1,9 @@
+syntax = "proto3";
+package arcgisjs;
+
+import "CoordinatePair.proto";
+
+message CoordinatesToPolylineRequest {
+  repeated CoordinatePair coordinates = 1;
+  int32 srsWkid = 2;
+}

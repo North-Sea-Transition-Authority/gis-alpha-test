@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message CoordinatesToPolylineResponse {
+  string polylineEsriJson = 1;
+}

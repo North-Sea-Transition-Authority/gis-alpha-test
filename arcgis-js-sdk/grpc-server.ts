@@ -30,7 +30,7 @@ import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOpera
 import {verifyPolygonsAreTopologicallyEqual} from "./handlers/verify-polygons-are-topologically-equal.js";
 import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json.js";
 import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
-import * as disjointOperator from "@arcgis/core/geometry/operators/disjointOperator.js";
+import {coordinatesToPolyline} from "./handlers/coordinates-to-polyline";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -86,9 +86,13 @@ const splitPolygon: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => 
 
   const cutResults = cutOperator.execute(target, cutter) as Polygon[];
 
-  // cutresults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
-  // this operation splits those disjointed polygons into separate polygons
-  const polygons: Polygon[] = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
+  let polygons: Polygon[] = [];
+  //Only separate polygons if a cut actually took place.
+  if (cutResults.length > 0) {
+    // cutresults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
+    // this operation splits those disjointed polygons into separate polygons
+    polygons = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
+  }
 
   console.log(`Created ${polygons.length} pieces`);
 
@@ -123,7 +127,8 @@ function main() {
     mergeAndGeneralizeLines,
     convertEsriJsonPolygonToGeoJson,
     verifyPolygonsAreTopologicallyEqual,
-    projectPolygons
+    projectPolygons,
+    coordinatesToPolyline
   });
 
   const bindAddress = '0.0.0.0:8082';

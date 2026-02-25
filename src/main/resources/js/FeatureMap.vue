@@ -73,6 +73,7 @@
     </ol-vector-layer>
   </ol-map>
   <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4" @click="deleteLines">Clear lines</button>
+  <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4 govuk-!-margin-left-2" @click="split">Split</button>
 </template>
 
 <script setup>
@@ -104,7 +105,9 @@ const quadBlockUrl = buildServiceUrl('UKCS_blocks_(WGS84)', 'BLOCK_REF');
 const MIN_SNAP_ZOOM = 11;
 const featuresUrl = `/feature-map/esrijson?featureIds=${encodeURIComponent(props.featureIds)}`;
 
-//allow us to use geographic coordinates on the map
+//Open layers uses the WebMercator coordinate system which is a projected system that uses metres for coordinates.
+//`useGeographic` allows us to use WGS84 geographic coordinate system on the map that uses degrees for coordinates
+//This allow us to use a common geographic system to display our geometries on the map.
 useGeographic()
 
 const regeneratePoints = () => {
@@ -216,6 +219,24 @@ function deleteLines() {
   previewLine.value = null;
 }
 
+async function split() {
+  if (!lines.value.length) {
+    return;
+  }
+  const requestBody = {
+    ed50lineCoordinates: lines.value.map(line => line.ed50Coordinates),
+    featureIds: props.featureIds.split(',')
+  };
+  console.log(requestBody);
+  const response = await fetch("/api/split", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(requestBody)
+  });
+  const status = response.status;
+  console.log(status);
+}
+
 const quadrantStyle = new Style({
   fill: new Fill({color: 'rgba(0, 0, 0, 0)'}),
   stroke: new Stroke({color: 'rgba(0, 46, 109, 0.8)', width: 1.5}),
@@ -317,7 +338,8 @@ const handleMapClick = () => {
 
   lines.value.push({
     id: `${selectedPoint.value.id},${hoveredPoint.value.id}`,
-    coordinates: [selectedPoint.value.coordinates, hoveredPoint.value.coordinates]
+    coordinates: [selectedPoint.value.coordinates, hoveredPoint.value.coordinates],
+    ed50Coordinates: [selectedPoint.value.ed50Coordinates, hoveredPoint.value.ed50Coordinates]
   });
 
   selectedPoint.value = hoveredPoint.value;
