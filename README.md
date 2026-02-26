@@ -6,6 +6,13 @@
 ### Profiles
 When developing locally, use the `development` profile, to access the oracle database and migrate data from there.
 
+### Environment variables
+Needed for production:
+
+| Environment Variabl        | Description                                                                        |
+|----------------------------|------------------------------------------------------------------------------------|
+| `USER_TESTING_RESET_TOKEN` | This is the token that allows the database to be reset to fresh user testing data. |
+
 ### 1. Initialise the Fivium Design System
 
 ```bash

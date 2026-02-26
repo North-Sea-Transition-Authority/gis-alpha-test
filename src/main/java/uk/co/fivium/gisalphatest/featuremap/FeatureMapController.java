@@ -24,7 +24,7 @@ import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 
 @Controller
 @RequestMapping("/feature-map")
-class FeatureMapController {
+public class FeatureMapController {
 
   private static final Logger logger = LoggerFactory.getLogger(FeatureMapController.class);
 

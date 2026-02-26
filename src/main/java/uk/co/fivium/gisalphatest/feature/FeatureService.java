@@ -1,6 +1,5 @@
 package uk.co.fivium.gisalphatest.feature;
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.EntityManager;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -9,6 +8,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.util.StreamUtil;
+import uk.co.fivium.gisalphatest.migration.Srs;
 
 @Service
 public class FeatureService {
@@ -17,16 +17,20 @@ public class FeatureService {
   private final PolygonRepository polygonRepository;
   private final LineRepository lineRepository;
   private final EntityManager entityManager;
+  private final ShapesConfigProperties shapesConfigProperties;
 
   FeatureService(
       FeatureRepository featureRepository,
       PolygonRepository polygonRepository,
       LineRepository lineRepository,
-      EntityManager entityManager) {
+      EntityManager entityManager,
+      ShapesConfigProperties shapesConfigProperties
+  ) {
     this.featureRepository = featureRepository;
     this.polygonRepository = polygonRepository;
     this.lineRepository = lineRepository;
     this.entityManager = entityManager;
+    this.shapesConfigProperties = shapesConfigProperties;
   }
 
   public EntityBackedFeature getEntityBackedFeature(Integer shapeSidId, String testCase) {
@@ -66,39 +70,65 @@ public class FeatureService {
     entityManager.flush();
   }
 
-  public Feature createFeature(FeatureType featureType, Integer srs) {
-    var feature = new Feature();
-    feature.setType(featureType);
-    feature.setSrs(srs);
-    featureRepository.save(feature);
-    return feature;
+  @Transactional
+  public void resetTablesForUserTesting() {
+    deleteAll();
+
+    if (shapesConfigProperties.shapes() == null || shapesConfigProperties.shapes().isEmpty()) {
+      return;
+    }
+
+    int shapeSid = 1;
+    for (var entry : shapesConfigProperties.shapes().entrySet()) {
+      var shapeConfig = entry.getValue();
+      var feature = createFeatureEntity(shapeSid, shapeConfig.featureName(), shapeConfig.testCase());
+      var polygon = createPolygonEntity(shapeSid, feature);
+
+      int lineIndex = 1;
+      for (var lineConfig : shapeConfig.lines()) {
+        createLineEntity(shapeSid, lineIndex, polygon, lineConfig.lineJson(), lineConfig.type(), lineConfig.ringNumber());
+        lineIndex++;
+      }
+      shapeSid++;
+    }
   }
 
-  public Polygon createPolygon(Feature feature) {
-    var polygon = new Polygon();
+  private Feature createFeatureEntity(int id, String name, String testCase) {
+    Feature feature = new Feature();
+    feature.setShapeSidId(id);
+    feature.setFeatureName(name);
+    feature.setType(FeatureType.POLYGON);
+    feature.setSrs(Srs.ED50.getValue());
+    feature.setTestCase(testCase);
+    return featureRepository.save(feature);
+  }
+
+  private Polygon createPolygonEntity(int id, Feature feature) {
+    Polygon polygon = new Polygon();
+    polygon.setOraclePolygonSsid(id * 100);
     polygon.setFeature(feature);
-    polygon.setAttributes(new HashMap<>());
-    polygonRepository.save(polygon);
-    return polygon;
+    polygon.setAttributes(Map.of());
+    return polygonRepository.save(polygon);
   }
 
-  public Line createLine(
-      Feature feature,
-      @Nullable Polygon polygon,
-      LineNavigationType navigationType,
-      int ringNumber,
-      int ringConnectionOrder,
-      String lineJson
+  private void createLineEntity(
+      int id,
+      int lineIndex,
+      Polygon polygon,
+      String lineJson,
+      LineNavigationType lineNavigationType,
+      Integer ringNumber
   ) {
-    var line = new Line();
+    Line line = new Line();
+    line.setOracleLineSsid(id * 1000 + lineIndex);
+    line.setBoundarySidId(id * 10000 + lineIndex);
     line.setPolygon(polygon);
-    line.setNavigationType(navigationType);
+    line.setNavigationType(lineNavigationType);
     line.setRingNumber(ringNumber);
-    line.setRingConnectionOrder(ringConnectionOrder);
-    line.setAttributes(new HashMap<>());
+    line.setRingConnectionOrder(lineIndex);
     line.setLineJson(lineJson);
+    line.setAttributes(Map.of());
     lineRepository.save(line);
-    return line;
   }
 
   public Map<String, String> getFeatureIdNameMap() {

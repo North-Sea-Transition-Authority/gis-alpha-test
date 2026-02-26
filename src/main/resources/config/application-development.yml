@@ -11,3 +11,6 @@ spring:
       properties:
         hibernate.default_schema: GIS_ALPHA
         hibernate.dialect: org.hibernate.dialect.OracleDialect
+
+user-testing:
+  reset-token: dev
