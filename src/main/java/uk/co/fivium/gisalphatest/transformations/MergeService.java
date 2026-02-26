@@ -26,8 +26,6 @@ import uk.co.fivium.gisalphatest.feature.Polygon;
 import uk.co.fivium.gisalphatest.feature.PolygonRepository;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
-import uk.co.fivium.gisalphatest.migration.MigrationService;
-import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Service
 public class MergeService {
@@ -38,7 +36,6 @@ public class MergeService {
   private final PolygonService polygonService;
   private final GrpcClientService grpcClientService;
   private final TransformationResultProcessingService transformationResultProcessingService;
-  private final MigrationService migrationService;
   private final FeatureRepository featureRepository;
   private final PolygonRepository polygonRepository;
   private final LineRepository lineRepository;
@@ -46,35 +43,17 @@ public class MergeService {
   public MergeService(PolygonService polygonService,
                       GrpcClientService grpcClientService,
                       TransformationResultProcessingService transformationResultProcessingService,
-                      MigrationService migrationService,
                       FeatureRepository featureRepository,
                       PolygonRepository polygonRepository,
                       LineRepository lineRepository) {
     this.polygonService = polygonService;
     this.grpcClientService = grpcClientService;
     this.transformationResultProcessingService = transformationResultProcessingService;
-    this.migrationService = migrationService;
     this.featureRepository = featureRepository;
     this.polygonRepository = polygonRepository;
     this.lineRepository = lineRepository;
   }
 
-  @Transactional
-  public void testOracleMerge(List<OracleShapeCompositeKey> oracleShapeInputs,
-                              OracleShapeCompositeKey oracleExpectedShapeResult) {
-    var polygonsToMigrate = new ArrayList<>(oracleShapeInputs);
-    polygonsToMigrate.add(oracleExpectedShapeResult);
-    migrationService.migrate(polygonsToMigrate);
-    migrationService.migrateFeatureAreas();
-
-    Feature featureInput1 = featureRepository.findAllByShapeSidId(oracleShapeInputs.getFirst().getShapeSidId()).getFirst();
-    Feature featureInput2 = featureRepository.findAllByShapeSidId(oracleShapeInputs.getLast().getShapeSidId()).getFirst();
-
-    Feature result = mergePolygons(featureInput1, featureInput2);
-
-    LOGGER.info("Results:");
-    LOGGER.info("Feature id: {} {}",result.getId(), polygonService.getPolygonsAsEsriJson(result, false).getFirst());
-  }
 
   @Transactional
   public Feature mergePolygons(Feature featureInput1, Feature featureInput2) {

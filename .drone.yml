@@ -1,0 +1,70 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: build-backend
+    image: eclipse-temurin:21-jdk
+    privileged: false
+    environment:
+      TZ: Europe/London
+    commands:
+      - chmod +x gradlew
+      - ./gradlew bootJar -PbuildType=release
+
+  - name: publish-java-app
+    image: plugins/ecr:21
+    settings:
+      repo: digital/gis-alpha-test
+      registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
+      access_key: AKIA4K4CXHTZ7KAUZJWL
+      secret_key:
+        from_secret: ecr_secret_key
+      config:
+        from_secret: docker_config
+      region: eu-west-2
+      tags:
+        - ${DRONE_BRANCH//\//-}-java-app-${DRONE_BUILD_NUMBER}
+      dockerfile: ./Dockerfile
+    when:
+      branch:
+        - develop
+        - main
+      status:
+        success
+
+  - name: publish-node-app
+    image: plugins/ecr:21
+    settings:
+      repo: digital/gis-alpha-test
+      registry: 847993322739.dkr.ecr.eu-west-2.amazonaws.com
+      access_key: AKIA4K4CXHTZ7KAUZJWL
+      secret_key:
+        from_secret: ecr_secret_key
+      config:
+        from_secret: docker_config
+      region: eu-west-2
+      tags:
+        - ${DRONE_BRANCH//\//-}-node-app-${DRONE_BUILD_NUMBER}
+      dockerfile: ./arcgis-js-sdk/Dockerfile
+    when:
+      branch:
+        - develop
+        - main
+      status:
+        success
+
+trigger:
+  event:
+    include:
+      - push
+
+---
+kind: secret
+name: ecr_secret_key
+data: GfrPcv7KyZDYt1rKK3WzP+ZzmEoHuaAclrzitaj4s2Waw52gbhD3jx7jl8FKwBUcy2CMt90uJm93/NNsd4xmmRuZLRE=
+
+---
+kind: secret
+name: docker_config
+data: 9mXWEkl5BDA9H619aD83PVveUMT0tRBhJ/bkxTkt32doPWkilPkoS/g2ky4ppc2HxKIFYLYCDTsGjh0SOrnibnLHhIAMYkqiH/6U1VEPBFkm1qNLeUJKpTCNJqFMsMuRCTiG/HwrgQYZAThlknk4SiX5qA1ZZfU/bzqVr6lO6qSJjQGHTEePdFGN1GPSs6Vzx6QbZG8YurMQYiBMJzAYwbfgr2XdlKi4S8lVTT1HMZhtBrn7NI6uzQ0IuQ==

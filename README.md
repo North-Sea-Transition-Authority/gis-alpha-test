@@ -2,6 +2,10 @@
 
 ## Setup
 
+
+### Profiles
+When developing locally, use the `development` profile, to access the oracle database and migrate data from there.
+
 ### 1. Initialise the Fivium Design System
 
 ```bash
@@ -15,17 +19,22 @@ cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
 npm install && npx gulp buildAll
 ```
 
-### 3. Build the arcgis-js-sdk
+### 3. Build the app.
+The backend contains two parts; the java app and the node server. 
+The java app is responsible for serving the frontend, but also critically getting data from the database and
+communicating with the node server via gRPC to perform operations on the data.
+gRPC uses protobuf to define messages and types which are generated and used on both the java and node app.
 
-run `cd arcgis-js-sdk/ && npm install && npm run copy:core && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
+Additionally, the frontend also needs to build the vue components before they can be served.
 
-### 4. Build the backend.
+To build everything you can run `npm run build-all` from the root directory to generate the proto for both apps and build the 
+frontend vue components.
 
-Run the gradle clean and build tasks to generate the java proto classes defined in `src/main/proto`
+Alternatively, you can build the parts separately by:
+- running `cd arcgis-js-sdk/ && npm install && npm run copy:core && npm run proto-gen && cd .. ` to install dependencies and build the gRPC proto files.
+- running the gradle clean and build tasks to generate the java proto classes defined in `src/main/proto`
+- running `gulp rollup-babel` to build the frontend vue components
 
-(Alternatively you can run `npm run build-all` from the root directory to generate build the frontend and generate the proto for
-the front and backend.)
+### 4. Start the node server
 
-### 5. Start the grpc server
-
-Go to `gis-alpha-test/arcgis-js-sdk` and right click `grpc-server.ts` then run.
+Go to `gis-alpha-test/arcgis-js-sdk` and right click `grpc-server.ts` then run

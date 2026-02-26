@@ -1,9 +1,7 @@
 package uk.co.fivium.gisalphatest.transformations;
 
 import jakarta.transaction.Transactional;
-import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -13,9 +11,6 @@ import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
-import uk.co.fivium.gisalphatest.migration.MigrationService;
-import uk.co.fivium.gisalphatest.oracle.OracleCutLineRepository;
-import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Service
 public class SplitService {
@@ -25,81 +20,16 @@ public class SplitService {
   private final PolygonService polygonService;
   private final GrpcClientService grpcClientService;
   private final FeatureRepository featureRepository;
-  private final MigrationService migrationService;
-  private final OracleCutLineRepository oracleCutLineRepository;
   private final TransformationResultProcessingService transformationResultProcessingService;
 
   public SplitService(PolygonService polygonService,
                       GrpcClientService grpcClientService,
                       FeatureRepository featureRepository,
-                      MigrationService migrationService,
-                      OracleCutLineRepository oracleCutLineRepository,
                       TransformationResultProcessingService transformationResultProcessingService) {
     this.polygonService = polygonService;
     this.grpcClientService = grpcClientService;
     this.featureRepository = featureRepository;
-    this.migrationService = migrationService;
-    this.oracleCutLineRepository = oracleCutLineRepository;
     this.transformationResultProcessingService = transformationResultProcessingService;
-  }
-
-  @Transactional
-  public void testOracleShapeSplit(OracleShapeCompositeKey oracleShapeTarget,
-                                   List<OracleShapeCompositeKey> oracleExpectedShapeResults,
-                                   String oracleCutLineTestCase) {
-    var polygonsToMigrate = new ArrayList<>(oracleExpectedShapeResults);
-    polygonsToMigrate.add(oracleShapeTarget);
-    migrationService.migrate(polygonsToMigrate);
-    migrationService.migrateFeatureAreas();
-
-    var migratedTargetPolygon = featureRepository.findAllByShapeSidId(oracleShapeTarget.getShapeSidId()).getFirst();
-    polygonService.getPolygonsAsEsriJson(migratedTargetPolygon, false).forEach(System.out::println);
-
-    String geoJsonSplitLine = oracleCutLineRepository.findByTestCase(oracleCutLineTestCase)
-        .get()
-        .getCutLineGeojson();
-    String esriJsonCutterLine = grpcClientService.convertCutLineToEsriJson(geoJsonSplitLine, migratedTargetPolygon.getSrs());
-
-    var resultFeatures = splitPolygon(migratedTargetPolygon, esriJsonCutterLine);
-
-    validateAreaAgainstOracleExpected(resultFeatures, oracleExpectedShapeResults);
-
-    LOGGER.info("Results:");
-    resultFeatures.forEach(feature -> LOGGER.info("feature: {}", feature.getId()));
-
-    resultFeatures.forEach(feature -> {
-      polygonService.getPolygonsAsEsriJson(feature, false).forEach(System.out::println);
-    });
-
-  }
-
-  private void validateAreaAgainstOracleExpected(List<Feature> resultFeatures,
-                                                 List<OracleShapeCompositeKey> oracleExpectedShapeResults) {
-    List<Integer> oracleExpectedShapesSsid = oracleExpectedShapeResults.stream()
-        .map(OracleShapeCompositeKey::getShapeSidId)
-        .toList();
-    List<Feature> oracleExpectedFeatures = featureRepository.findAllByShapeSidIdIn(oracleExpectedShapesSsid)
-        .stream()
-        .sorted(Comparator.comparing(Feature::getFeatureArea))
-        .toList();
-    resultFeatures.sort(Comparator.comparing(Feature::getFeatureArea));
-
-    if (resultFeatures.size() != oracleExpectedShapesSsid.size()) {
-      throw new IllegalStateException("resultFeatures.size() (%s) != oracleExpectedShapesSsid.size() (%s)".formatted(resultFeatures.size(), oracleExpectedShapesSsid.size()));
-    }
-
-    for (int i = 0; i < resultFeatures.size(); i++) {
-      Feature oracleExpectedFeature = oracleExpectedFeatures.get(i);
-      Feature resultFeature = resultFeatures.get(i);
-      BigDecimal difference = resultFeature.getFeatureArea().subtract(oracleExpectedFeature.getFeatureArea());
-      resultFeature.setAreaDifference(difference);
-
-      if (difference.abs().compareTo(BigDecimal.valueOf(20)) > 0) {
-        LOGGER.error("Feature {} has an area difference bigger than 20m^2 compared to its oracle counterpart", resultFeature.getId());
-      }
-    }
-
-    featureRepository.saveAll(resultFeatures);
   }
 
   @Transactional

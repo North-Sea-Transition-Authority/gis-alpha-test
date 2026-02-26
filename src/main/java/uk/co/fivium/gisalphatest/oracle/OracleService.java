@@ -6,10 +6,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.migration.EntityBackedOracleShape;
 
 @Service
+@Profile("development")
 public class OracleService {
 
   private final OracleBoundaryLineRepository oracleLineRepository;

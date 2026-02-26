@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    oracle:
+      url: jdbc:oracle:thin:@db-ogadev1.sb2.dev:1521:ogadev1
+      username: GIS_ALPHA
+      password: dev1
+      driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    oracle:
+      open-in-view: false
+      properties:
+        hibernate.default_schema: GIS_ALPHA
+        hibernate.dialect: org.hibernate.dialect.OracleDialect

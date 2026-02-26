@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.feature.Feature;
@@ -33,6 +34,7 @@ import uk.co.fivium.gisalphatest.oracle.OracleService;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
 
 @Service
+@Profile("development")
 public class MigrationService {
   private static final Logger LOGGER = LoggerFactory.getLogger(MigrationService.class);
 
@@ -215,7 +217,7 @@ public class MigrationService {
       }
 
       featureAreaService.calculateFeatureArea(feature);
-      featureAreaService.calculateAreaDifference(feature, new OracleShapeCompositeKey(feature.getShapeSidId(), feature.getTestCase()));
+      featureAreaService.calculateAreaDifference(feature, oracleService.getOracleShapeArea(new OracleShapeCompositeKey(feature.getShapeSidId(), feature.getTestCase())));
       if (feature.getAreaDifference().abs().compareTo(BigDecimal.valueOf(20)) > 0) {
         LOGGER.warn("Shape id {} has new area greater than 20 metres squared different to oracle. Difference: {} ",
             feature.getId(),

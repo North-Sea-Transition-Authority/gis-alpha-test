@@ -3,22 +3,11 @@ spring:
     url: jdbc:postgresql://localhost:5432/gis_alpha_test
     username: gis_alpha_test_app
     password: dev1
-    driver-class-name: org.postgresql.Driver
-    oracle:
-      url: jdbc:oracle:thin:@db-ogadev1.sb2.dev:1521:ogadev1
-      username: GIS_ALPHA
-      password: dev1
-      driver-class-name: oracle.jdbc.OracleDriver
   jpa:
     open-in-view: false
     properties:
       hibernate.default_schema: gis_alpha_test
       hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
-    oracle:
-      open-in-view: false
-      properties:
-        hibernate.default_schema: GIS_ALPHA
-        hibernate.dialect: org.hibernate.dialect.OracleDialect
   flyway:
     schemas: ${spring.jpa.properties.hibernate.default_schema}
   freemarker:

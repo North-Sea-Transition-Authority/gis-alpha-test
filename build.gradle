@@ -95,3 +95,9 @@ protobuf {
     }
   }
 }
+
+tasks {
+  bootJar {
+    archiveFileName.set("${rootProject.name}.jar")
+  }
+}
