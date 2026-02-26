@@ -78,11 +78,11 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue';
-  import { transform } from 'ol/proj';
-  import { debounce } from './debounce';
+import {onMounted, ref} from 'vue';
+import {transform} from 'ol/proj';
+import {debounce} from '../../../js/debounce';
 
-  const polygonCoordinates = [
+const polygonCoordinates = [
     [
       [-1250, 7360616],
       [1250, 7360616],

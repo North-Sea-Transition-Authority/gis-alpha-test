@@ -1,16 +1,16 @@
 import {createApp} from "vue";
-import Map from "./Map.vue";
-import FeatureMap from "./FeatureMap.vue";
+import TestMap from "../templates/gis-alpha-test/testMap/TestMap.vue";
+import Map from "../templates/gis-alpha-test/map/vue/Map.vue";
 import OpenLayersMap from "vue3-openlayers";
 
-for (const element of document.querySelectorAll("[data-module='map']")) {
-  const app = createApp(Map);
+for (const element of document.querySelectorAll("[data-module='test-map']")) {
+  const app = createApp(TestMap);
   app.use(OpenLayersMap);
   app.mount(element);
 }
 
-for (const element of document.querySelectorAll("[data-module='feature-map']")) {
-  const app = createApp(FeatureMap, {
+for (const element of document.querySelectorAll("[data-module='map']")) {
+  const app = createApp(Map, {
     featureIds: element.dataset.featureIds
   });
   app.use(OpenLayersMap);

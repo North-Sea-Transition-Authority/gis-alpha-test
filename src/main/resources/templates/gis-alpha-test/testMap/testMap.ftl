@@ -1,12 +1,11 @@
 <#include '../layout/layout.ftl'>
 
-<#assign pageTitle = "Feature Map" />
+<#assign pageTitle = "Map" />
 
 <@defaultPage
   htmlTitle=pageTitle
   pageHeading=pageTitle
   pageSize=PageSize.FULL_COLUMN
-  backLinkEnabled=true
 >
-  <div data-module='feature-map' data-feature-ids="${featureIds?join(",")}"></div>
+  <div data-module='test-map'></div>
 </@defaultPage>

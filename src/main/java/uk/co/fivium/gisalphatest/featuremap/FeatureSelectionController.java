@@ -32,7 +32,7 @@ public class FeatureSelectionController {
     if (CollectionUtils.isEmpty(form.getFeatureIds())) {
       return getModelAndView();
     }
-    return ReverseRouter.redirect(on(FeatureMapController.class).getFeatureMap(form.getFeatureIds()));
+    return ReverseRouter.redirect(on(MapController.class).getFeatureMap(form.getFeatureIds()));
   }
 
   private ModelAndView getModelAndView() {

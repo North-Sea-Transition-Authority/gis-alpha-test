@@ -23,17 +23,17 @@ import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 
 @Controller
-@RequestMapping("/feature-map")
-public class FeatureMapController {
+@RequestMapping("/map")
+class MapController {
 
-  private static final Logger logger = LoggerFactory.getLogger(FeatureMapController.class);
+  private static final Logger logger = LoggerFactory.getLogger(MapController.class);
 
   private final FeatureRepository featureRepository;
   private final PolygonService polygonService;
   private final ObjectMapper objectMapper;
   private final GrpcClientService grpcClientService;
 
-  FeatureMapController(
+  MapController(
       FeatureRepository featureRepository,
       PolygonService polygonService,
       ObjectMapper objectMapper,
@@ -55,7 +55,7 @@ public class FeatureMapController {
     List<String> idsAsString = featureIds.stream()
         .map(UUID::toString)
         .toList();
-    return new ModelAndView("gis-alpha-test/featuremap/featureMap")
+    return new ModelAndView("gis-alpha-test/map/map")
         .addObject("featureIds", idsAsString);
   }
 
