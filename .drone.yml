@@ -3,13 +3,41 @@ type: docker
 name: default
 
 steps:
-  - name: build-backend
+
+  - name: fetch-fds-submodule
+    image: alpine/git:v2.26.2
+    commands:
+      - echo "$${BITBUCKET_SSH_KEY}" > bitbucket_ssh_key
+      - chmod 600 bitbucket_ssh_key
+      - export GIT_SSH_COMMAND="ssh -i bitbucket_ssh_key -F /dev/null  -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+      - git submodule update --init --recursive
+    environment:
+      BITBUCKET_SSH_KEY:
+        from_secret: bitbucket_ssh_key
+
+  - name: build-node-backend
+    image: node:22.21.1
+    commands:
+      - cd arcgis-js-sdk
+      - npm install
+      - npm run copy:core
+      - npm run proto-gen
+      - cd ..
+
+  - name: build-frontend
+    image: node:22.21.1
+    commands:
+      - npm install
+      - npx gulp rollup-babel
+
+  - name: build-java-backend
     image: eclipse-temurin:21-jdk
     privileged: false
     environment:
       TZ: Europe/London
     commands:
       - chmod +x gradlew
+      - ./gradlew extractIncludeProto extractProto generateProto
       - ./gradlew bootJar -PbuildType=release
 
   - name: publish-java-app
@@ -68,3 +96,9 @@ data: GfrPcv7KyZDYt1rKK3WzP+ZzmEoHuaAclrzitaj4s2Waw52gbhD3jx7jl8FKwBUcy2CMt90uJm
 kind: secret
 name: docker_config
 data: 9mXWEkl5BDA9H619aD83PVveUMT0tRBhJ/bkxTkt32doPWkilPkoS/g2ky4ppc2HxKIFYLYCDTsGjh0SOrnibnLHhIAMYkqiH/6U1VEPBFkm1qNLeUJKpTCNJqFMsMuRCTiG/HwrgQYZAThlknk4SiX5qA1ZZfU/bzqVr6lO6qSJjQGHTEePdFGN1GPSs6Vzx6QbZG8YurMQYiBMJzAYwbfgr2XdlKi4S8lVTT1HMZhtBrn7NI6uzQ0IuQ==
+
+---
+kind: secret
+name: bitbucket_ssh_key
+data: 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
+
