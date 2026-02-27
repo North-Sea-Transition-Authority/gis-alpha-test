@@ -68,4 +68,18 @@ public class MergeTestController {
     );
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  // GISA-76 merge a shape with a hole
+  @GetMapping("/merge5")
+  public ModelAndView merge5() {
+    var testCase = "GISA-76";
+    testTransformationService.testOracleMerge(
+        List.of(
+            new OracleShapeCompositeKey(57367245, testCase),
+            new OracleShapeCompositeKey(57367277, testCase)
+        ),
+        new OracleShapeCompositeKey(57367748, testCase)
+    );
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }
