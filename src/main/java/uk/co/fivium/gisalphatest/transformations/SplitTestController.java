@@ -117,4 +117,41 @@ public class SplitTestController {
 
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  //GISA-73 split multiple shapes with a single line
+  @GetMapping("/split8")
+  public ModelAndView splitPolygon8() {
+    String testCase = "GISA-73";
+
+    //shape 1
+    testTransformationService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57475726, testCase),
+        List.of(
+            new OracleShapeCompositeKey(57476564, testCase),
+            new OracleShapeCompositeKey(57476569, testCase)
+        ),
+        testCase
+    );
+
+    //shape 2
+    testTransformationService.testOracleShapeSplit(
+        new OracleShapeCompositeKey(57475726, testCase),
+        List.of(
+            new OracleShapeCompositeKey(57476564, testCase),
+            new OracleShapeCompositeKey(57476569, testCase)
+        ),
+        testCase
+    );
+
+    // migrate and split together as part of a loop (no validation, just to see how it looks on screen)
+    testTransformationService.testMultipleOracleShapeSplit(
+        List.of(
+            new OracleShapeCompositeKey(57015719, testCase),
+            new OracleShapeCompositeKey(57015751, testCase)
+        ),
+        testCase
+    );
+
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }

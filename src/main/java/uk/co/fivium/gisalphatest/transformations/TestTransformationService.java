@@ -80,6 +80,26 @@ public class TestTransformationService {
 
   }
 
+
+  @Transactional
+  public void testMultipleOracleShapeSplit(List<OracleShapeCompositeKey> oracleShapeTargets,
+                                          String oracleCutLineTestCase) {
+    migrationService.migrate(oracleShapeTargets);
+    migrationService.migrateFeatureAreas();
+
+    var migratedTargetPolygons = featureRepository.findAll();
+
+    String geoJsonSplitLine = oracleCutLineRepository.findByTestCase(oracleCutLineTestCase)
+        .get()
+        .getCutLineGeojson();
+    String esriJsonCutterLine = grpcClientService.convertCutLineToEsriJson(geoJsonSplitLine, migratedTargetPolygons.getFirst().getSrs());
+
+    List<Feature> resultFeatures = new ArrayList<>();
+
+    migratedTargetPolygons.forEach(feature -> resultFeatures.addAll(splitService.splitPolygon(feature, esriJsonCutterLine)));
+  }
+
+
   @Transactional
   public void testOracleMerge(List<OracleShapeCompositeKey> oracleShapeInputs,
                               OracleShapeCompositeKey oracleExpectedShapeResult) {
