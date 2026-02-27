@@ -2,8 +2,8 @@ import type {ArcGisServiceHandlers} from "../generated/arcgisjs/ArcGisService";
 import Polygon from "@arcgis/core/geometry/Polygon.js";
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
 
-// Tolerance for generalizing line geometries in degrees (~1 cm on ED50).
-export const GENERALIZE_TOLERANCE_DEGREES = 0.0000001;
+// Tolerance for generalizing line geometries in degrees (~1 mm on ED50).
+export const GENERALIZE_TOLERANCE_DEGREES = 0.00000001;
 
 export const generalizePolygon: ArcGisServiceHandlers["generalizePolygon"] = async (call, callback) => {
     const polygonJson = call.request.esriPolygon;

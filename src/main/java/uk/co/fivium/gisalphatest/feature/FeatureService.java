@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.co.fivium.gisalphatest.util.StreamUtil;
 import uk.co.fivium.gisalphatest.migration.Srs;
+import uk.co.fivium.gisalphatest.util.StreamUtil;
 
 @Service
 public class FeatureService {

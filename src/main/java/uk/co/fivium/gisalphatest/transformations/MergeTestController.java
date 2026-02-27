@@ -26,4 +26,18 @@ public class MergeTestController {
     );
     return new ModelAndView("gis-alpha-test/layout/layout");
   }
+
+  // GISA-31 merge a geodesic treaty boundary shape
+  @GetMapping("/merge2")
+  public ModelAndView merge2() {
+    var testCase = "GISA-31";
+    testTransformationService.testOracleMerge(
+        List.of(
+            new OracleShapeCompositeKey(57070124, testCase),
+            new OracleShapeCompositeKey(57070189, testCase)
+        ),
+        new OracleShapeCompositeKey(57070711, testCase)
+    );
+    return new ModelAndView("gis-alpha-test/layout/layout");
+  }
 }

@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
+import uk.co.fivium.gisalphatest.feature.FeatureService;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 import uk.co.fivium.gisalphatest.migration.MigrationService;
@@ -33,14 +34,15 @@ public class TestTransformationService {
   private final MergeService mergeService;
 
   private final GrpcClientService grpcClientService;
+  private final FeatureService featureService;
 
   public TestTransformationService(
       MigrationService migrationService,
       FeatureRepository featureRepository, PolygonService polygonService,
       SplitService splitService,
       GrpcClientService grpcClientService,
-      OracleCutLineRepository oracleCutLineRepository, MergeService mergeService
-  ) {
+      OracleCutLineRepository oracleCutLineRepository, MergeService mergeService,
+      FeatureService featureService) {
     this.migrationService = migrationService;
     this.featureRepository = featureRepository;
     this.polygonService = polygonService;
@@ -48,6 +50,7 @@ public class TestTransformationService {
     this.grpcClientService = grpcClientService;
     this.oracleCutLineRepository = oracleCutLineRepository;
     this.mergeService = mergeService;
+    this.featureService = featureService;
   }
 
   @Transactional
