@@ -27,8 +27,8 @@ steps:
   - name: build-frontend
     image: node:22.21.1
     commands:
-      - npm install
-      - npx gulp rollup-babel
+      - cd fivium-design-system-core && npm install && npx gulp buildAll && cd ..
+      - npm install && npx gulp buildAll
 
   - name: build-java-backend
     image: eclipse-temurin:21-jdk
