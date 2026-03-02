@@ -1,5 +1,7 @@
 package uk.co.fivium.gisalphatest.featuremap;
 
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -7,8 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,28 +20,23 @@ import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureType;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
-import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
+import uk.co.fivium.gisalphatest.mvc.ReverseRouter;
 
 @Controller
 @RequestMapping("/map")
 class MapController {
 
-  private static final Logger logger = LoggerFactory.getLogger(MapController.class);
-
   private final FeatureRepository featureRepository;
   private final PolygonService polygonService;
   private final ObjectMapper objectMapper;
-  private final GrpcClientService grpcClientService;
 
   MapController(
       FeatureRepository featureRepository,
       PolygonService polygonService,
-      ObjectMapper objectMapper,
-      GrpcClientService grpcClientService) {
+      ObjectMapper objectMapper) {
     this.featureRepository = featureRepository;
     this.polygonService = polygonService;
     this.objectMapper = objectMapper;
-    this.grpcClientService = grpcClientService;
   }
 
   @GetMapping
@@ -56,7 +51,8 @@ class MapController {
         .map(UUID::toString)
         .toList();
     return new ModelAndView("gis-alpha-test/map/map")
-        .addObject("featureIds", idsAsString);
+        .addObject("featureIds", idsAsString)
+        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
   }
 
   @GetMapping("/esrijson")

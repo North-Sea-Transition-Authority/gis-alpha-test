@@ -7,6 +7,7 @@
   pageHeading=pageTitle
   pageSize=PageSize.FULL_COLUMN
   backLinkEnabled=true
+  backLinkUrl=backUrl
 >
   <div data-module='map' data-feature-ids="${featureIds?join(",")}"></div>
 </@defaultPage>

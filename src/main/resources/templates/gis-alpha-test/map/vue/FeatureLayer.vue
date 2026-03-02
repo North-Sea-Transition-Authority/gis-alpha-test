@@ -8,14 +8,14 @@
 <script setup>
 import {Fill, Stroke, Style, Text} from "ol/style";
 import {EsriJSON} from "ol/format";
+import {computed} from "vue";
 
 const props = defineProps({
   featureIds: String,
   olMap: Object
 })
-
-const featuresUrl = `/map/esrijson?featureIds=${encodeURIComponent(props.featureIds)}`;
 const esriJson = new EsriJSON();
+const featuresUrl = computed(() => `/map/esrijson?featureIds=${encodeURIComponent(props.featureIds)}`);
 
 function featureStyle(feature) {
   return new Style({

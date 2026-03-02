@@ -1,9 +1,9 @@
 package uk.co.fivium.gisalphatest.transformations;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,13 +30,15 @@ public class SplitRestController {
   }
 
   @PostMapping
-  public ResponseEntity<String> splitFromMap(@RequestBody SplitFromMapRequestBody splitFromMapRequestBody) {
+  public List<String> splitFromMap(@RequestBody SplitFromMapRequestBody splitFromMapRequestBody) {
     LOGGER.info("Received request for '{}'", splitFromMapRequestBody);
     var cutterLine = grpcClientService.convertPointsToEd50Polyline(splitFromMapRequestBody.ed50lineCoordinates());
     List<Feature> features = featureRepository.findAllById(splitFromMapRequestBody.featureIds());
+    List<String> outputIds = new ArrayList<>();
     for (Feature feature : features) {
-      splitService.splitPolygon(feature, cutterLine);
+      List<Feature> results = splitService.splitPolygon(feature, cutterLine);
+      results.forEach(result -> outputIds.add(result.getId().toString()));
     }
-    return ResponseEntity.ok().build();
+    return outputIds;
   }
 }
