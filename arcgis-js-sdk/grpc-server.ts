@@ -31,6 +31,7 @@ import {verifyPolygonsAreTopologicallyEqual} from "./handlers/verify-polygons-ar
 import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json.js";
 import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
 import {coordinatesToPolyline} from "./handlers/coordinates-to-polyline";
+import {getSnapPoints} from "./handlers/get-snap-points";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -128,7 +129,8 @@ function main() {
     convertEsriJsonPolygonToGeoJson,
     verifyPolygonsAreTopologicallyEqual,
     projectPolygons,
-    coordinatesToPolyline
+    coordinatesToPolyline,
+    getSnapPoints
   });
 
   const bindAddress = '0.0.0.0:8082';

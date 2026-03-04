@@ -20,6 +20,7 @@ import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureType;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
+import uk.co.fivium.gisalphatest.migration.Srs;
 import uk.co.fivium.gisalphatest.mvc.ReverseRouter;
 
 @Controller
@@ -43,6 +44,7 @@ class MapController {
   public ModelAndView getFeatureMap(@RequestParam(required = false) List<UUID> featureIds) {
     if (CollectionUtils.isEmpty(featureIds)) {
       featureIds = featureRepository.findAll().stream()
+          .filter(feature -> Srs.ED50.getWkid().equals(feature.getSrs()))
           .map(Feature::getId)
           .toList();
     }
@@ -50,8 +52,10 @@ class MapController {
     List<String> idsAsString = featureIds.stream()
         .map(UUID::toString)
         .toList();
+    int srsWkid = featureRepository.findById(featureIds.getFirst()).map(Feature::getSrs).orElse(Srs.ED50.getWkid());
     return new ModelAndView("gis-alpha-test/map/map")
         .addObject("featureIds", idsAsString)
+        .addObject("srsWkid", srsWkid)
         .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
   }
 

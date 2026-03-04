@@ -98,7 +98,7 @@ public class FeatureService {
     feature.setShapeSidId(id);
     feature.setFeatureName(name);
     feature.setType(FeatureType.POLYGON);
-    feature.setSrs(Srs.ED50.getValue());
+    feature.setSrs(Srs.ED50.getWkid());
     feature.setTestCase(testCase);
     return featureRepository.save(feature);
   }

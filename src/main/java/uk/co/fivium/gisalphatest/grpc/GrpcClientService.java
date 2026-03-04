@@ -7,6 +7,7 @@ import arcgisjs.CoordinatesToPolylineRequestOuterClass;
 import arcgisjs.EsriJsonLineWithNavigationTypeAndIdOuterClass;
 import arcgisjs.GeneralizePolygonRequestOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
+import arcgisjs.GetSnapPointsRequestOuterClass;
 import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
 import arcgisjs.MergeAndGeneralizeLinesRequestOuterClass;
@@ -47,6 +48,7 @@ import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.springframework.stereotype.Service;
 import uk.co.fivium.gisalphatest.feature.Line;
 import uk.co.fivium.gisalphatest.feature.LineNavigationType;
+import uk.co.fivium.gisalphatest.featuremap.SnapPoint;
 import uk.co.fivium.gisalphatest.migration.OracleBoundaryLineWithRing;
 import uk.co.fivium.gisalphatest.migration.Srs;
 import uk.co.fivium.gisalphatest.transformations.LineWrapper;
@@ -431,11 +433,32 @@ public class GrpcClientService {
         .toList();
     var request = CoordinatesToPolylineRequestOuterClass.CoordinatesToPolylineRequest.newBuilder()
         .addAllCoordinates(coordinatePairs)
-        .setSrsWkid(Srs.ED50.getValue())
+        .setSrsWkid(Srs.ED50.getWkid())
         .build();
 
     var response = arcgisClient.coordinatesToPolyline(request);
 
     return response.getPolylineEsriJson();
+  }
+
+  public List<SnapPoint> getSnapPoints(Srs srs,
+                                       double wgs84MaxLat,
+                                       double wgs84MinLon,
+                                       double wgs84MinLat,
+                                       double wgs84MaxLon) {
+    var request =  GetSnapPointsRequestOuterClass.GetSnapPointsRequest.newBuilder()
+        .setWgs84MinLon(wgs84MinLon)
+        .setWgs84MinLat(wgs84MinLat)
+        .setWgs84MaxLon(wgs84MaxLon)
+        .setWgs84MaxLat(wgs84MaxLat)
+        .setSrsWkid(srs.getWkid())
+        .build();
+
+    var response = arcgisClient.getSnapPoints(request);
+
+    return response.getPointsList()
+        .stream()
+        .map(point -> new SnapPoint(point.getId(), point.getWgs84CoordinatesEsriJson(), point.getOriginalSrsCoordinatesEsriJson()))
+        .toList();
   }
 }

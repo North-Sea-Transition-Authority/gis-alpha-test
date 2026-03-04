@@ -235,7 +235,7 @@ public class MigrationService {
     newFeature.setShapeSidId(entityBackedShape.shape().getShapeSidId());
     newFeature.setFeatureName(entityBackedShape.shape().getShapeName());
     newFeature.setTestCase(entityBackedShape.shape().getTestCase());
-    newFeature.setSrs(fromOracleName(entityBackedShape.shape().getShapeSrs()).getValue());
+    newFeature.setSrs(fromOracleName(entityBackedShape.shape().getShapeSrs()).getWkid());
 
     newFeature.setType(FeatureType.POLYGON);
 

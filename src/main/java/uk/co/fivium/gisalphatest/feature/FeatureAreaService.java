@@ -24,7 +24,7 @@ public class FeatureAreaService {
 
   @Transactional
   public void calculateFeatureArea(Feature newFeature) {
-    var isOnshore = Srs.BNG.getValue().equals(newFeature.getSrs());
+    var isOnshore = Srs.BNG.getWkid().equals(newFeature.getSrs());
 
     // We don't need to densify loxodrome lines that are onshore as there is no earth curvature taken into account.
     List<String> polygonsAsEsriJson = polygonService.getPolygonsAsEsriJson(newFeature, !isOnshore);

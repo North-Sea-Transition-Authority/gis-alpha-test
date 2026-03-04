@@ -4,16 +4,16 @@ public enum Srs {
   ED50(4230, "ED 50"),
   BNG(27700, "OSGB NATIONAL GRID")
   ;
-  private final Integer value;
+  private final Integer wkid;
   private final String oracleName;
 
-  Srs(Integer value, String oracleName) {
-    this.value = value;
+  Srs(Integer wkid, String oracleName) {
+    this.wkid = wkid;
     this.oracleName = oracleName;
   }
 
-  public Integer getValue() {
-    return value;
+  public Integer getWkid() {
+    return wkid;
   }
 
   public String getOracleName() {
@@ -23,6 +23,15 @@ public enum Srs {
   public static Srs fromOracleName(String oracleName) {
     for (Srs srs : Srs.values()) {
       if (srs.getOracleName().equals(oracleName)) {
+        return srs;
+      }
+    }
+    return null;
+  }
+
+  public static Srs fromWkid(Integer wkid) {
+    for (Srs srs : Srs.values()) {
+      if (srs.getWkid().equals(wkid)) {
         return srs;
       }
     }

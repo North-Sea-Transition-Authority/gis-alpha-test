@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package arcgisjs;
 
-import "ordered_line_segment.proto";
-
 message ValidatePolygonReconstructionResponse {
   bool isValid = 1;
 }

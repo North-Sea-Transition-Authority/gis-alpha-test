@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+message GetSnapPointsRequest {
+  double wgs84MinLon = 1;
+  double wgs84MinLat = 2;
+  double wgs84MaxLon = 3;
+  double wgs84MaxLat = 4;
+  int32 srsWkid = 5;
+}

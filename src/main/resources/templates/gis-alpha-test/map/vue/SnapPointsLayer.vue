@@ -59,12 +59,30 @@
       </ol-feature>
     </ol-source-vector>
   </ol-vector-layer>
+
+  <ol-overlay v-if="hoveredPoint" :position="hoveredPoint.coordinates" positioning="top-left" :offset="[8, 8]">
+    <div class="snap-tooltip">
+      {{ hoveredPoint.originalSrsCoordinates[1].toFixed(4) }}°N {{ hoveredPoint.originalSrsCoordinates[0].toFixed(4) }}°E
+    </div>
+  </ol-overlay>
 </template>
+
+<style scoped>
+.snap-tooltip {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+</style>
 
 <script setup>
 import proj4 from "proj4";
 import {ref, watch} from "vue";
 import {debounce} from "../../../../js/debounce";
+import {getSnapPoints} from "../js/api/snap-points.api";
 
 //definition for ED50 (EPSG:4230) as per https://spatialreference.org/ref/epsg/4230/
 proj4.defs('EPSG:4230', '+proj=longlat +ellps=intl +towgs84=-87,-98,-121,0,0,0,0 +no_defs');
@@ -77,7 +95,8 @@ const previewLine = ref(null);
 
 const props = defineProps({
   olMap: Object,
-  lines: Array
+  lines: Array,
+  srsWkid: Number
 })
 
 const emit = defineEmits(['update:lines'])
@@ -97,8 +116,8 @@ watch(() => props.olMap, (olMap) => {
     return;
   }
 
-  regeneratePoints();
-  const debouncedRegenerate = debounce(regeneratePoints, 200);
+  regeneratePointsOnBrowser();
+  const debouncedRegenerate = debounce(regeneratePointsOnBrowser, 200);
   map.getView().on('change:resolution', debouncedRegenerate);
   map.getView().on('change:center', debouncedRegenerate);
   map.on('pointermove', handleMouseMove);
@@ -106,7 +125,23 @@ watch(() => props.olMap, (olMap) => {
   map.getViewport().addEventListener('pointerleave', handleMouseLeave);
 });
 
-const regeneratePoints = () => {
+//Decided not to use as this will just be used for visualisation. We dont need the NSTA approved transformation so we can avoid the SBA -> Node app calls.
+const regeneratePointsNodeServer = async () => {
+  const map = props.olMap?.map;
+  if (!map) {
+    return;
+  }
+
+  if (map.getView().getZoom() < MIN_SNAP_ZOOM) {
+    points.value = [];
+    return;
+  }
+
+  const [wgs84MinLon, wgs84MinLat, wgs84MaxLon, wgs84MaxLat] = map.getView().calculateExtent(map.getSize());
+  points.value = await getSnapPoints(wgs84MinLon, wgs84MinLat, wgs84MaxLon, wgs84MaxLat, props.srsWkid);
+};
+
+const regeneratePointsOnBrowser = () => {
   const map = props.olMap?.map;
   if (!map) {
     return;
@@ -122,22 +157,22 @@ const regeneratePoints = () => {
   const [wgs84MinLon, wgs84MinLat, wgs84MaxLon, wgs84MaxLat] = map.getView().calculateExtent(map.getSize());
 
   // Transform WGS84 viewport bounds to ED50 (EPSG:4230)
-  const [ed50MinLon, ed50MinLat] = proj4('EPSG:4326', 'EPSG:4230', [wgs84MinLon, wgs84MinLat]);
-  const [ed50MaxLon, ed50MaxLat] = proj4('EPSG:4326', 'EPSG:4230', [wgs84MaxLon, wgs84MaxLat]);
+  const [originalSrsMinLon, originalSrsMinLat] = proj4('EPSG:4326', 'EPSG:4230', [wgs84MinLon, wgs84MinLat]);
+  const [originalSrsMaxLon, originalSrsMaxLat] = proj4('EPSG:4326', 'EPSG:4230', [wgs84MaxLon, wgs84MaxLat]);
 
   const arcSecondSpacing = 30 / 3600; // 30 arc seconds in decimal degrees
-  const ed50StartLon = Math.floor(ed50MinLon / arcSecondSpacing) * arcSecondSpacing;
-  const ed50StartLat = Math.floor(ed50MinLat / arcSecondSpacing) * arcSecondSpacing;
+  const originalSrsStartLon = Math.floor(originalSrsMinLon / arcSecondSpacing) * arcSecondSpacing;
+  const originalSrsStartLat = Math.floor(originalSrsMinLat / arcSecondSpacing) * arcSecondSpacing;
 
   const pointsArray = [];
-  for (let ed50Lon = ed50StartLon; ed50Lon <= ed50MaxLon; ed50Lon += arcSecondSpacing) {
-    for (let ed50Lat = ed50StartLat; ed50Lat <= ed50MaxLat; ed50Lat += arcSecondSpacing) {
+  for (let originalSrsLon = originalSrsStartLon; originalSrsLon <= originalSrsMaxLon; originalSrsLon += arcSecondSpacing) {
+    for (let originalSrsLat = originalSrsStartLat; originalSrsLat <= originalSrsMaxLat; originalSrsLat += arcSecondSpacing) {
       // Transform ED50 (EPSG:4230) to WGS84 (EPSG:4326) for display
-      const [wgs84Lon, wgs84Lat] = proj4('EPSG:4230', 'EPSG:4326', [ed50Lon, ed50Lat]);
+      const [wgs84Lon, wgs84Lat] = proj4('EPSG:4230', 'EPSG:4326', [originalSrsLon, originalSrsLat]);
       pointsArray.push({
-        id: `${ed50Lon},${ed50Lat}`,
+        id: `${originalSrsLon},${originalSrsLat}`,
         coordinates: [wgs84Lon, wgs84Lat],
-        ed50Coordinates: [ed50Lon, ed50Lat],
+        originalSrsCoordinates: [originalSrsLon, originalSrsLat],
       });
     }
   }
@@ -187,8 +222,8 @@ const findNearestPoint = (coordinates, filter) => {
   return nearestPoint;
 };
 
-const pointsAreAligned = (pointA, pointB) => pointA.ed50Coordinates[0] === pointB.ed50Coordinates[0]
-    || pointA.ed50Coordinates[1] === pointB.ed50Coordinates[1];
+const pointsAreAligned = (pointA, pointB) => pointA.originalSrsCoordinates[0] === pointB.originalSrsCoordinates[0]
+    || pointA.originalSrsCoordinates[1] === pointB.originalSrsCoordinates[1];
 
 const handleMapClick = () => {
   if (!selectedPoint.value) {
@@ -206,7 +241,7 @@ const handleMapClick = () => {
   emit('update:lines', [...props.lines, {
     id: `${selectedPoint.value.id},${hoveredPoint.value.id}`,
     coordinates: [selectedPoint.value.coordinates, hoveredPoint.value.coordinates],
-    ed50Coordinates: [selectedPoint.value.ed50Coordinates, hoveredPoint.value.ed50Coordinates]
+    originalSrsCoordinates: [selectedPoint.value.originalSrsCoordinates, hoveredPoint.value.originalSrsCoordinates]
   }]);
 
 

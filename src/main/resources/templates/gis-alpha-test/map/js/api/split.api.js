@@ -1,6 +1,6 @@
 export async function splitRequest(lines, featureIds) {
   const requestBody = {
-    ed50lineCoordinates: lines.map(line => line.ed50Coordinates),
+    originalSrsCoordinates: lines.map(line => line.originalSrsCoordinates),
     featureIds: featureIds.split(',')
   };
   console.log(requestBody);

@@ -11,7 +11,8 @@ for (const element of document.querySelectorAll("[data-module='test-map']")) {
 
 for (const element of document.querySelectorAll("[data-module='map']")) {
   const app = createApp(Map, {
-    featureIds: element.dataset.featureIds
+    featureIds: element.dataset.featureIds,
+    srsWkid: Number(element.dataset.srsWkid)
   });
   app.use(OpenLayersMap);
   app.mount(element);

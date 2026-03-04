@@ -7,7 +7,7 @@
     </ol-tile-layer>
     <nsta-quadrant-layer :ol-map="mapRef"/>
     <nsta-quadrant-block-layer :ol-map="mapRef"/>
-    <snap-points-layer :ol-map="mapRef" v-model:lines="lines"/>
+    <snap-points-layer :ol-map="mapRef" v-model:lines="lines" :srsWkid="props.srsWkid"/>
     <feature-layer :featureIds="currentFeatureIds" :ol-map="mapRef"/>
   </ol-map>
   <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4" @click="deleteLines">Clear lines</button>
@@ -25,7 +25,8 @@ import NotificationBanner from "./NotificationBanner.vue";
 import {splitRequest} from "../js/api/split.api";
 
 const props = defineProps({
-  featureIds: String
+  featureIds: String,
+  srsWkid: Number
 })
 const mapRef = ref(null);
 const lines = ref([]);

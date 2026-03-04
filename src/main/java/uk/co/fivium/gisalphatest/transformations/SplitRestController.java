@@ -32,7 +32,7 @@ public class SplitRestController {
   @PostMapping
   public List<String> splitFromMap(@RequestBody SplitFromMapRequestBody splitFromMapRequestBody) {
     LOGGER.info("Received request for '{}'", splitFromMapRequestBody);
-    var cutterLine = grpcClientService.convertPointsToEd50Polyline(splitFromMapRequestBody.ed50lineCoordinates());
+    var cutterLine = grpcClientService.convertPointsToEd50Polyline(splitFromMapRequestBody.originalSrsCoordinates()); //TODO GISA-98 get correct line srs based on input srs.
     List<Feature> features = featureRepository.findAllById(splitFromMapRequestBody.featureIds());
     List<String> outputIds = new ArrayList<>();
     for (Feature feature : features) {

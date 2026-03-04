@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import "SnapPoint.proto";
+
+message GetSnapPointsResponse {
+  repeated SnapPoint points = 1;
+}

@@ -9,5 +9,5 @@
   backLinkEnabled=true
   backLinkUrl=backUrl
 >
-  <div data-module='map' data-feature-ids="${featureIds?join(",")}"></div>
+  <div data-module='map' data-feature-ids="${featureIds?join(",")}" data-srs-wkid="${srsWkid?c}"></div>
 </@defaultPage>
