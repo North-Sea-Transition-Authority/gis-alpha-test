@@ -420,11 +420,13 @@ public class GrpcClientService {
 
   /**
    * Take a collection of ordered points to create a polyline out of them.
-   * @param ed50lineCoordinates List of coordinate pairs that represent the paths of the line.
-   * @return an esriJson string representing a polyline in ED50
+   * @param lineCoordinates List of coordinate pairs that represent the paths of the line. Coordinates should already be in
+   *                        the specified srs
+   * @param srs Coordinate system in which the coordinates are.
+   * @return an esriJson string representing a polyline in the specified coordinate system.
    */
-  public String convertPointsToEd50Polyline(List<List<List<BigDecimal>>> ed50lineCoordinates) {
-    var coordinatePairs = ed50lineCoordinates.stream()
+  public String convertPointsToPolyline(List<List<List<BigDecimal>>> lineCoordinates, Srs srs) {
+    var coordinatePairs = lineCoordinates.stream()
         .flatMap(Collection::stream)
         .map(coordinatePair -> CoordinatePairOuterClass.CoordinatePair.newBuilder()
             .setX(coordinatePair.getFirst().doubleValue())
@@ -433,7 +435,7 @@ public class GrpcClientService {
         .toList();
     var request = CoordinatesToPolylineRequestOuterClass.CoordinatesToPolylineRequest.newBuilder()
         .addAllCoordinates(coordinatePairs)
-        .setSrsWkid(Srs.ED50.getWkid())
+        .setSrsWkid(srs.getWkid())
         .build();
 
     var response = arcgisClient.coordinatesToPolyline(request);

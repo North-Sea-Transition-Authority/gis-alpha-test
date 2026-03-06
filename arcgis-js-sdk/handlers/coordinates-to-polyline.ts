@@ -6,9 +6,9 @@ import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOpera
 
 export const coordinatesToPolyline: ArcGisServiceHandlers["coordinatesToPolyline"] = async (call, callback) => {
     console.log("coordinatesToPolyline");
-    const ed50Coordinates = call.request.coordinates;
+    const coordinates = call.request.coordinates;
     const srsWkid = call.request.srsWkid;
-    const coordinatesPath = ed50Coordinates.map(coordinate => [coordinate.x, coordinate.y]);
+    const coordinatesPath = coordinates.map(coordinate => [coordinate.x, coordinate.y]);
     const polyline = new Polyline({
         paths: [coordinatesPath],
         spatialReference: new SpatialReference({

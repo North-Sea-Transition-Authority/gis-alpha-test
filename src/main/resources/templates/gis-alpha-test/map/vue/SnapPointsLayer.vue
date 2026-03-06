@@ -38,7 +38,7 @@
 
   <ol-overlay v-if="hoveredPoint" :position="hoveredPoint.coordinates" positioning="top-left" :offset="[8, 8]">
     <div class="snap-tooltip">
-      {{ hoveredPoint.originalSrsCoordinates[1].toFixed(4) }}°N {{ hoveredPoint.originalSrsCoordinates[0].toFixed(4) }}°E
+      {{ hoveredPoint.displayName }}
     </div>
   </ol-overlay>
 
@@ -56,13 +56,11 @@
 </style>
 
 <script setup>
-import {wgs84ToEd50, ed50ToWgs84} from "../js/coordinate-system-utils";
 import {ref, watch} from "vue";
 import {debounce} from "../../../../js/debounce";
 import {getSnapPoints} from "../js/api/snap-points.api";
+import {bngToWgs84, bngWkid, ed50ToWgs84, ed50Wkid, wgs84ToBng, wgs84ToEd50} from "../js/coordinate-system-utils";
 
-
-const MIN_SNAP_ZOOM = 11;
 const snapPoints = ref([]);
 const selectedPoint = ref(null);
 const hoveredPoint = ref(null);
@@ -75,6 +73,15 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:coordinates'])
+
+const getMinSnapZoom = () => {
+  if (props.srsWkid === ed50Wkid) {
+    return 11;
+  } else if (props.srsWkid === bngWkid) {
+    return 12;
+  }
+  throw new Error(`Unsupported SRS WKID in SnapPointsLayer: ${props.srsWkid}`);
+}
 
 watch(() => props.coordinates, (points) => {
   if (points.length === 0) {
@@ -114,7 +121,7 @@ const regeneratePointsNodeServer = async () => {
     return;
   }
 
-  if (map.getView().getZoom() < MIN_SNAP_ZOOM) {
+  if (map.getView().getZoom() < getMinSnapZoom()) {
     snapPoints.value = [];
     return;
   }
@@ -130,7 +137,7 @@ const regeneratePointsOnBrowser = () => {
   }
 
   //Only generate points above this zoom level, to avoid running out of memory.
-  if (map.getView().getZoom() < MIN_SNAP_ZOOM) {
+  if (map.getView().getZoom() < getMinSnapZoom()) {
     snapPoints.value = [];
     return;
   }
@@ -138,23 +145,49 @@ const regeneratePointsOnBrowser = () => {
   // useGeographic() makes calculateExtent return WGS84 (EPSG:4326)
   const [wgs84MinLon, wgs84MinLat, wgs84MaxLon, wgs84MaxLat] = map.getView().calculateExtent(map.getSize());
 
-  // Transform WGS84 viewport bounds to ED50 (EPSG:4230)
-  const [originalSrsMinLon, originalSrsMinLat] = wgs84ToEd50(wgs84MinLon, wgs84MinLat);
-  const [originalSrsMaxLon, originalSrsMaxLat] = wgs84ToEd50(wgs84MaxLon, wgs84MaxLat);
+  let [originalSrsMinLon, originalSrsMinLat] = [];
+  let [originalSrsMaxLon, originalSrsMaxLat] = [];
+  if (props.srsWkid === ed50Wkid) {
+    [originalSrsMinLon, originalSrsMinLat] = wgs84ToEd50(wgs84MinLon, wgs84MinLat);
+    [originalSrsMaxLon, originalSrsMaxLat] = wgs84ToEd50(wgs84MaxLon, wgs84MaxLat);
+  } else if (props.srsWkid === bngWkid) {
+    [originalSrsMinLon, originalSrsMinLat] = wgs84ToBng(wgs84MinLon, wgs84MinLat);
+    [originalSrsMaxLon, originalSrsMaxLat] = wgs84ToBng(wgs84MaxLon, wgs84MaxLat);
+  }
 
-  const arcSecondSpacing = 30 / 3600; // 30 arc seconds in decimal degrees
-  const originalSrsStartLon = Math.floor(originalSrsMinLon / arcSecondSpacing) * arcSecondSpacing;
-  const originalSrsStartLat = Math.floor(originalSrsMinLat / arcSecondSpacing) * arcSecondSpacing;
+
+  let spacing;
+  if (props.srsWkid === ed50Wkid) {
+    spacing = 30 / 3600; // 30 arc seconds in decimal degrees
+  } else if (props.srsWkid === bngWkid) {
+    spacing = 500; //500 metres
+  }
+  const originalSrsStartLon = Math.floor(originalSrsMinLon / spacing) * spacing;
+  const originalSrsStartLat = Math.floor(originalSrsMinLat / spacing) * spacing;
 
   const pointsArray = [];
-  for (let originalSrsLon = originalSrsStartLon; originalSrsLon <= originalSrsMaxLon; originalSrsLon += arcSecondSpacing) {
-    for (let originalSrsLat = originalSrsStartLat; originalSrsLat <= originalSrsMaxLat; originalSrsLat += arcSecondSpacing) {
-      // Transform ED50 (EPSG:4230) to WGS84 (EPSG:4326) for display
-      const [wgs84Lon, wgs84Lat] = ed50ToWgs84(originalSrsLon, originalSrsLat);
+  for (let originalSrsLon = originalSrsStartLon; originalSrsLon <= originalSrsMaxLon; originalSrsLon += spacing) {
+    for (let originalSrsLat = originalSrsStartLat; originalSrsLat <= originalSrsMaxLat; originalSrsLat += spacing) {
+
+      let [wgs84Lon, wgs84Lat] = [];
+      if (props.srsWkid === ed50Wkid) {
+        [wgs84Lon, wgs84Lat] = ed50ToWgs84(originalSrsLon, originalSrsLat);
+      } else if (props.srsWkid === bngWkid) {
+        [wgs84Lon, wgs84Lat] = bngToWgs84(originalSrsLon, originalSrsLat);
+      }
+
+      let displayName;
+      if (props.srsWkid === ed50Wkid) {
+        displayName = `${toDegreesMinutesSeconds(originalSrsLat, true)} ${toDegreesMinutesSeconds(originalSrsLon, false)}`;
+      } else if (props.srsWkid === bngWkid) {
+        displayName = `${originalSrsLon}E ${originalSrsLat}N`;
+      }
+
       pointsArray.push({
         id: `${originalSrsLon},${originalSrsLat}`,
         coordinates: [wgs84Lon, wgs84Lat],
         originalSrsCoordinates: [originalSrsLon, originalSrsLat],
+        displayName,
       });
     }
   }
@@ -234,5 +267,15 @@ const handleMapClick = () => {
 const handleMouseLeave = () => {
   hoveredPoint.value = null;
   previewLine.value = null;
+};
+
+const toDegreesMinutesSeconds = (decimal, isLat) => {
+  const absolute = Math.abs(decimal);
+  const degrees = Math.floor(absolute);
+  const minutesDecimal = (absolute - degrees) * 60;
+  const minutes = Math.floor(minutesDecimal);
+  const seconds = ((minutesDecimal - minutes) * 60).toFixed(1);
+  const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : (decimal >= 0 ? 'E' : 'W');
+  return `${degrees}°${String(minutes).padStart(2, '0')}'${String(seconds).padStart(4, '0')}"${dir}`;
 };
 </script>

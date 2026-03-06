@@ -69,6 +69,8 @@ public class TransformationResultProcessingService {
     var findParentLineResponse = grpcClientService.findParentLine(inputPolygonLines, explodedPolygonLines);
     Map<UUID, Line> idToParentLine = inputPolygonLines.stream()
         .collect(Collectors.toMap(Line::getId, Function.identity()));
+    boolean isOnshore = inputPolygonLines.stream()
+        .anyMatch(line -> LineNavigationType.CARTESIAN.equals(line.getNavigationType()));
 
     List<Line> newLineEntities = findParentLineResponse.polylineToParentLineId()
         .entrySet()
@@ -87,7 +89,7 @@ public class TransformationResultProcessingService {
       var newLineEntity = new Line();
       newLineEntity.setLineJson(polyline);
       newLineEntity.setAttributes(new HashMap<>());
-      newLineEntity.setNavigationType(LineNavigationType.LOXODROME);
+      newLineEntity.setNavigationType(isOnshore ? LineNavigationType.CARTESIAN : LineNavigationType.LOXODROME);
       newLineEntities.add(newLineEntity);
     });
     return newLineEntities;

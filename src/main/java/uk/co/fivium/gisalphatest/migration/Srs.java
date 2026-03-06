@@ -35,6 +35,6 @@ public enum Srs {
         return srs;
       }
     }
-    return null;
+    throw new IllegalArgumentException("Unknown wkid '" + wkid + "'");
   }
 }

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
+import uk.co.fivium.gisalphatest.migration.Srs;
 
 @RestController
 @RequestMapping("/api/split")
@@ -32,8 +33,9 @@ public class SplitRestController {
   @PostMapping
   public List<String> splitFromMap(@RequestBody SplitFromMapRequestBody splitFromMapRequestBody) {
     LOGGER.info("Received request for '{}'", splitFromMapRequestBody);
-    var cutterLine = grpcClientService.convertPointsToEd50Polyline(splitFromMapRequestBody.originalSrsCoordinates()); //TODO GISA-98 get correct line srs based on input srs.
     List<Feature> features = featureRepository.findAllById(splitFromMapRequestBody.featureIds());
+    Srs srs = Srs.fromWkid(features.getFirst().getSrs());
+    String cutterLine = grpcClientService.convertPointsToPolyline(splitFromMapRequestBody.originalSrsCoordinates(), srs);
     List<String> outputIds = new ArrayList<>();
     for (Feature feature : features) {
       List<Feature> results = splitService.splitPolygon(feature, cutterLine);
