@@ -355,7 +355,7 @@ test('Compare polygon equality to same polygon with line shifted at high decimal
   const inputPolygon2 = Polygon.fromJSON(Terraformer.geojsonToArcGIS(inputPolygon2GeoJson));
   inputPolygon2.spatialReference = { wkid: WKID_ED50 };
 
-  const inputPolygon1EqualsInputPolygon2 = equalsOperator.execute(inputPolygon1, inputPolygon2) as boolean;
+  const inputPolygon1EqualsInputPolygon2 = equalsOperator.execute(inputPolygon1, inputPolygon2) as boolean; // trufflehog:ignore
 
   expect(inputPolygon1EqualsInputPolygon2).toBe(true);
 });
