@@ -40,7 +40,7 @@ class MapController {
     this.objectMapper = objectMapper;
   }
 
-  @GetMapping
+  @GetMapping("/split/point-and-click")
   public ModelAndView getFeatureMap(@RequestParam(required = false) List<UUID> featureIds) {
     if (CollectionUtils.isEmpty(featureIds)) {
       featureIds = featureRepository.findAll().stream()
@@ -53,10 +53,33 @@ class MapController {
         .map(UUID::toString)
         .toList();
     int srsWkid = featureRepository.findById(featureIds.getFirst()).map(Feature::getSrs).orElse(Srs.ED50.getWkid());
-    return new ModelAndView("gis-alpha-test/map/map")
+    return new ModelAndView("gis-alpha-test/map/splitByPointAndClickPage")
         .addObject("featureIds", idsAsString)
         .addObject("srsWkid", srsWkid)
-        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
+        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()))
+        .addObject("coordinateEntryMapUrl",
+            ReverseRouter.route(on(MapController.class).getFeatureMapWithCoordinateEntry(featureIds)));
+  }
+
+  @GetMapping("/split/coordinate-entry")
+  public ModelAndView getFeatureMapWithCoordinateEntry(@RequestParam(required = false) List<UUID> featureIds) {
+    if (CollectionUtils.isEmpty(featureIds)) {
+      featureIds = featureRepository.findAll().stream()
+          .filter(feature -> Srs.ED50.getWkid().equals(feature.getSrs()))
+          .map(Feature::getId)
+          .toList();
+    }
+
+    List<String> idsAsString = featureIds.stream()
+        .map(UUID::toString)
+        .toList();
+    int srsWkid = featureRepository.findById(featureIds.getFirst()).map(Feature::getSrs).orElse(Srs.ED50.getWkid());
+    return new ModelAndView("gis-alpha-test/map/splitByCoordinateEntryPage")
+        .addObject("featureIds", idsAsString)
+        .addObject("srsWkid", srsWkid)
+        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()))
+        .addObject("pointAndClickMapUrl",
+            ReverseRouter.route(on(MapController.class).getFeatureMap(featureIds)));
   }
 
   @GetMapping("/esrijson")

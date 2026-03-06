@@ -1,6 +1,14 @@
-export async function splitRequest(lines, featureIds) {
+export async function splitRequest(points, featureIds) {
+  const originalSrsCoordinates = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    originalSrsCoordinates.push([
+      [points[i].originalSrsLongitude, points[i].originalSrsLatitude],
+      [points[i + 1].originalSrsLongitude, points[i + 1].originalSrsLatitude]
+    ]);
+  }
+
   const requestBody = {
-    originalSrsCoordinates: lines.map(line => line.originalSrsCoordinates),
+    originalSrsCoordinates: originalSrsCoordinates,
     featureIds: featureIds.split(',')
   };
   console.log(requestBody);
