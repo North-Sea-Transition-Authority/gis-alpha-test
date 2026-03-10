@@ -5,12 +5,12 @@ import Polyline from "@arcgis/core/geometry/Polyline.js";
 import type {ProtoGrpcType} from "./generated/ArcGisJs.ts";
 import type {ArcGisServiceHandlers} from "./generated/arcgisjs/ArcGisService.ts";
 import Polygon from "@arcgis/core/geometry/Polygon.js";
-import * as cutOperator from '@arcgis/core/geometry/operators/cutOperator.js';
 import {unionPolygons} from "./handlers/union-polygons";
 import {calculatePolygonArea} from "./handlers/calculate-polygon-area";
 import {densifyLoxodromePolyline} from "./handlers/densify-loxodrome-polyline";
 import {findParentLine} from './handlers/lineTools.js';
 import {explodePolygon} from './handlers/polygonTools.js';
+import {splitPolygon} from './handlers/split-polygon.js';
 import {checkParentContainsChild} from './handlers/check-parent-contains-child';
 import {getStartAndEndPoints} from './handlers/get-start-and-end-points'
 import {validatePolygonReconstruction} from './handlers/validate-polygon-reconstruction.js';
@@ -29,7 +29,6 @@ import * as linesToPolygonsOperator from "@arcgis/core/geometry/operators/linesT
 import * as simplifyOperator from "@arcgis/core/geometry/operators/simplifyOperator.js";
 import {verifyPolygonsAreTopologicallyEqual} from "./handlers/verify-polygons-are-topologically-equal.js";
 import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json.js";
-import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
 import {coordinatesToPolyline} from "./handlers/coordinates-to-polyline";
 import {getSnapPoints} from "./handlers/get-snap-points";
 
@@ -79,32 +78,6 @@ const buildPolygon: ArcGisServiceHandlers["buildPolygon"] = (call, callback) => 
   callback(null, {esriJsonString: JSON.stringify(simplifiedPolygon.toJSON())})
 }
 
-const splitPolygon: ArcGisServiceHandlers["splitPolygon"] = (call, callback) => {
-  console.log("Split polygon");
-
-  const target = Polygon.fromJSON(JSON.parse(call.request.target.esriJsonPolygon));
-  const cutter = Polyline.fromJSON(JSON.parse(call.request.esriJsonCutter));
-
-  const cutResults = cutOperator.execute(target, cutter) as Polygon[];
-
-  let polygons: Polygon[] = [];
-  //Only separate polygons if a cut actually took place.
-  if (cutResults.length > 0) {
-    // cutresults may contain disjointed polygons, (one polygon that should actually be multiple polygons)
-    // this operation splits those disjointed polygons into separate polygons
-    polygons = multiPartToSinglePartOperator.executeMany(cutResults) as Polygon[];
-  }
-
-  console.log(`Created ${polygons.length} pieces`);
-
-  const response = (polygons || []).map((poly) => {
-    return {
-      esriJsonPolygon: JSON.stringify(poly.toJSON())
-    };
-  });
-
-  callback(null, { polygons: response });
-}
 
 function main() {
   const server = new grpc.Server();
