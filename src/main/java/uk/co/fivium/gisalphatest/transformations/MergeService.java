@@ -58,7 +58,10 @@ public class MergeService {
   @Transactional
   public Feature mergePolygons(Feature featureInput1, Feature featureInput2) {
     String esriJsonPolygonInput1 = polygonService.getPolygonsAsEsriJson(featureInput1, false).getFirst();
+    System.out.println(esriJsonPolygonInput1);
+
     String esriJsonPolygonInput2 = polygonService.getPolygonsAsEsriJson(featureInput2, false).getFirst();
+    System.out.println(esriJsonPolygonInput2);
 
     LOGGER.info("Input polygons:");
     LOGGER.info(esriJsonPolygonInput1);
@@ -68,6 +71,7 @@ public class MergeService {
     var newFeature = transformationResultProcessingService.processOutputPolygon(List.of(featureInput1, featureInput2), resultEsriPolygon);
     removeInnerVertices(resultEsriPolygon, newFeature);
 
+    System.out.println(polygonService.getPolygonsAsEsriJson(newFeature, false).getFirst());
     return newFeature;
   }
 

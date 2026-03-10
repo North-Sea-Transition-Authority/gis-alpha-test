@@ -1,7 +1,9 @@
 import type {ArcGisServiceHandlers} from "../generated/arcgisjs/ArcGisService.ts";
 import Polyline from "@arcgis/core/geometry/Polyline.js";
 import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator.js";
+import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator.js";
 import * as Terraformer from "@terraformer/arcgis";
+import {GENERALIZE_TOLERANCE_DEGREES} from "./generalizePolygon.js";
 import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOperator.js";
 import Point from "@arcgis/core/geometry/Point";
 import SpatialReference from "@arcgis/core/geometry/SpatialReference";
@@ -24,6 +26,7 @@ import {
 
 // 1 second in degrees (arc second) == 1° (degree) / 60'(minutes) / 60” (seconds)
 const ONE_ARC_SECOND = 1 / 3600.0;
+const GEODESIC_DENSE_POINT_METERS_INTERVAL = 100;
 
 export const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeoJsonLineToEsriJsonLine'] = async (call, callback) => {
     const {geoJsonString, wkid, isGeodesic, parentLines} = call.request;
@@ -57,7 +60,7 @@ export const convertGeoJsonLineToEsriJsonLine: ArcGisServiceHandlers['convertGeo
                 await geodeticDensifyOperator.load();
             }
 
-            polyline = geodeticDensifyOperator.execute(polyline, 50, {curveType: "geodesic", unit: "meters"}) as Polyline;
+            polyline = geodeticDensifyOperator.execute(polyline, GEODESIC_DENSE_POINT_METERS_INTERVAL, {curveType: "geodesic", unit: "meters"}) as Polyline;
         }
     }
 
@@ -193,7 +196,8 @@ async function migrateParentPolygon(linesWithNavigationTypeAndId: LineWithNaviga
             if (!geodeticDensifyOperator.isLoaded()) {
                 await geodeticDensifyOperator.load();
             }
-            line = geodeticDensifyOperator.execute(line, 50, {curveType: "geodesic", unit: "meters"}) as Polyline;
+            line = geodeticDensifyOperator.execute(line, GEODESIC_DENSE_POINT_METERS_INTERVAL, {curveType: "geodesic", unit: "meters"}) as Polyline;
+            line = generalizeOperator.execute(line, GENERALIZE_TOLERANCE_DEGREES) as Polyline;
         }
 
         convertedLines.push({esriJsonString: JSON.stringify(line), oracleLineSsid: id});
