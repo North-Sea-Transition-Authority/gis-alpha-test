@@ -15,5 +15,11 @@ backLinkUrl=backUrl
     linkUrl=springUrl(pointAndClickMapUrl)
   />
 
-  <div data-module='split-by-coordinate-entry-page' data-feature-ids="${featureIds?join(",")}" data-srs-wkid="${srsWkid?c}"></div>
+  <div
+    data-module='split-by-coordinate-entry-page'
+    data-feature-ids="${featureIds?join(",")}"
+    data-srs-wkid="${srsWkid?c}"
+    <#if journeyId??>data-journey-id="${journeyId}"</#if>
+  >
+  </div>
 </@defaultPage>

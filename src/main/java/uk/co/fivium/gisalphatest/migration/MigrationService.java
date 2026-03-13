@@ -32,6 +32,8 @@ import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 import uk.co.fivium.gisalphatest.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisalphatest.oracle.OracleService;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
+import uk.co.fivium.gisalphatest.transformations.command.CommandJourneyRepository;
+import uk.co.fivium.gisalphatest.transformations.command.TransformationCommandRepository;
 
 @Service
 @Profile("development")
@@ -51,6 +53,8 @@ public class MigrationService {
   private final MigrationRestApiService migrationRestApiService;
   private final GrpcClientService grpcClientService;
   private final FeatureAreaService featureAreaService;
+  private final TransformationCommandRepository transformationCommandRepository;
+  private final CommandJourneyRepository commandJourneyRepository;
 
   MigrationService(
       LineRepository lineRepository,
@@ -61,7 +65,9 @@ public class MigrationService {
       PolygonService polygonService,
       MigrationRestApiService migrationRestApiService,
       GrpcClientService grpcClientService,
-      FeatureAreaService featureAreaService) {
+      FeatureAreaService featureAreaService,
+      TransformationCommandRepository transformationCommandRepository,
+      CommandJourneyRepository commandJourneyRepository) {
     this.lineRepository = lineRepository;
     this.polygonRepository = polygonRepository;
     this.featureRepository = featureRepository;
@@ -71,13 +77,15 @@ public class MigrationService {
     this.migrationRestApiService = migrationRestApiService;
     this.grpcClientService = grpcClientService;
     this.featureAreaService = featureAreaService;
+    this.transformationCommandRepository = transformationCommandRepository;
+    this.commandJourneyRepository = commandJourneyRepository;
   }
 
   @Transactional
   public void migrate(Collection<OracleShapeCompositeKey> ids) {
 
     //Added this to make testing on local dev easier
-    featureService.deleteAll();
+    resetDataBase();
 
     var entityBackedOracleShapes = oracleService.getEntityBackedOracleShapes(ids);
 
@@ -125,6 +133,12 @@ public class MigrationService {
         lineRepository.saveAll(nonDuplicateLines);
       }
     }
+  }
+
+  private void resetDataBase() {
+    featureService.deleteAll();
+    transformationCommandRepository.deleteAll();
+    commandJourneyRepository.deleteAll();
   }
 
   //TODO GISA-89 duplicate lines being persisted.

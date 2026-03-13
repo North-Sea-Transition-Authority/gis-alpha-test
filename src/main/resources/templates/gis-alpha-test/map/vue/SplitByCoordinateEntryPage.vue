@@ -6,7 +6,7 @@
     </div>
     <div class="govuk-grid-column-one-half">
       <Map v-model="coordinates" :display-snap-point-layer="false"  :feature-ids="currentFeatureIds" :srs-wkid="srsWkid"/>
-      <split-actions :points="coordinates" :feature-ids="currentFeatureIds" @clear="clear" @split-success="onSplitSuccess" @split-error="splitError = $event" />
+      <split-actions :points="coordinates" :feature-ids="currentFeatureIds" :journey-id="props.journeyId" @clear="clear" @split-success="onSplitSuccess" @split-error="splitError = $event" />
     </div>
   </div>
 </template>
@@ -22,7 +22,8 @@ import {wgs84ToEd50} from "../js/coordinate-system-utils";
 
 const props = defineProps({
   featureIds: String,
-  srsWkid: Number
+  srsWkid: Number,
+  journeyId: String,
 });
 
 const [initialOriginalSrsLon, initialOriginalSrsLat] = wgs84ToEd50(0, 0);

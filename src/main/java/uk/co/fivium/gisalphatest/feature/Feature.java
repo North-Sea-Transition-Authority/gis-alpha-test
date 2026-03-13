@@ -4,10 +4,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
+import uk.co.fivium.gisalphatest.transformations.command.TransformationCommand;
 
 @Entity
 @Table(name = "features")
@@ -33,6 +36,12 @@ public class Feature {
   private UUID parentFeatureId;
 
   private String testCase;
+
+  private Boolean active = true;
+
+  @ManyToOne
+  @JoinColumn(name = "created_by_command_id")
+  private TransformationCommand createdByCommand;
 
   public UUID getId() {
     return id;
@@ -100,5 +109,21 @@ public class Feature {
 
   public void setTestCase(String testCase) {
     this.testCase = testCase;
+  }
+
+  public Boolean isActive() {
+    return active;
+  }
+
+  public void setActive(Boolean active) {
+    this.active = active;
+  }
+
+  public TransformationCommand getCreatedByCommand() {
+    return createdByCommand;
+  }
+
+  public void setCreatedByCommand(TransformationCommand createdByCommand) {
+    this.createdByCommand = createdByCommand;
   }
 }

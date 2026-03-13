@@ -1,7 +1,7 @@
 <template>
   <notification-banner :message="splitError"/>
   <Map v-model="points" :feature-ids="currentFeatureIds" :srs-wkid="srsWkid"/>
-  <split-actions :points="points" :feature-ids="currentFeatureIds" @clear="deleteLines" @split-success="onSplitSuccess" @split-error="splitError = $event" />
+  <split-actions :points="points" :feature-ids="currentFeatureIds" :journey-id="props.journeyId" @clear="deleteLines" @split-success="onSplitSuccess" @split-error="splitError = $event" />
 </template>
 
 <script setup>
@@ -12,7 +12,8 @@ import SplitActions from "./SplitActions.vue";
 
 const props = defineProps({
   featureIds: String,
-  srsWkid: Number
+  srsWkid: Number,
+  journeyId: String,
 })
 const points = ref([]);
 const currentFeatureIds = ref(props.featureIds);

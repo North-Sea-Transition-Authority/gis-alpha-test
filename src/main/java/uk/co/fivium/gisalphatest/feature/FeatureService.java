@@ -1,6 +1,7 @@
 package uk.co.fivium.gisalphatest.feature;
 
 import jakarta.persistence.EntityManager;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -71,6 +72,14 @@ public class FeatureService {
   }
 
   @Transactional
+  public void deleteAll(Collection<Feature> features) {
+    lineRepository.deleteAllByPolygon_FeatureIn(features);
+    polygonRepository.deleteAllByFeatureIn(features);
+    featureRepository.deleteAll(features.stream().filter(f -> f.getParentFeatureId() != null).toList());
+    featureRepository.deleteAll(features.stream().filter(f -> f.getParentFeatureId() == null).toList());
+  }
+
+  @Transactional
   public void resetTablesForUserTesting() {
     deleteAll();
 
@@ -132,7 +141,7 @@ public class FeatureService {
   }
 
   public Map<String, String> getFeatureIdNameMap() {
-    return featureRepository.findAll().stream()
+    return featureRepository.findAllByActive(true).stream()
         .sorted(Comparator.comparing(Feature::getFeatureName))
         .collect(StreamUtil.toLinkedHashMap(feature -> feature.getId().toString(), Feature::getFeatureName));
   }

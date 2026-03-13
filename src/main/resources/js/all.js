@@ -13,7 +13,8 @@ for (const element of document.querySelectorAll("[data-module='test-map']")) {
 for (const element of document.querySelectorAll("[data-module='split-by-point-and-click-page']")) {
   const app = createApp(SplitByPointAndClickPage, {
     featureIds: element.dataset.featureIds,
-    srsWkid: Number(element.dataset.srsWkid)
+    srsWkid: Number(element.dataset.srsWkid),
+    journeyId: element.dataset.journeyId,
   });
   app.use(OpenLayersMap);
   app.mount(element);
@@ -21,7 +22,9 @@ for (const element of document.querySelectorAll("[data-module='split-by-point-an
 
 for (const element of document.querySelectorAll("[data-module='split-by-coordinate-entry-page']")) {
   const app = createApp(SplitByCoordinateEntryPage, {
-    featureIds: element.dataset.featureIds
+    featureIds: element.dataset.featureIds,
+    srsWkid: Number(element.dataset.srsWkid),
+    journeyId: element.dataset.journeyId,
   });
   app.use(OpenLayersMap);
   app.mount(element);

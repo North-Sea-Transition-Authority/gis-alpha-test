@@ -12,21 +12,61 @@ export async function splitRequest(points, featureIds) {
     featureIds: featureIds.split(',')
   };
   console.log(requestBody);
-  const outputFeatureIds = [];
-
-  const response = await fetch("/api/split", {
+  const response = await fetch("/api/split/execute", {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(requestBody)
   });
 
-  await response.json()
-    .then(featureIds => {
-      for (let featureId of featureIds) {
-        outputFeatureIds.push(featureId);
-      }
-    })
-    .catch(console.error);
+  if (!response.ok) {
+    throw new Error(`Failed to do split: ${response.statusText}`);
+  }
 
-  return outputFeatureIds;
+  const responseBody = await response.json();
+
+  return {
+    outputFeatureIds: responseBody.outputFeatureIds,
+    commandJourneyId: responseBody.commandJourneyId
+  };
+}
+
+export async function undoSplit(journeyId) {
+  const response = await fetch(`/api/split/${journeyId}/undo`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to undo split: ${response.statusText}`);
+  }
+
+  const responseBody = await response.json();
+
+  return {
+    outputFeatureIds: responseBody.outputFeatureIds,
+    commandJourneyId: responseBody.commandJourneyId
+  };
+}
+
+
+export async function redoSplit(journeyId) {
+  const response = await fetch(`/api/split/${journeyId}/redo`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to redo split: ${response.statusText}`);
+  }
+
+  const responseBody = await response.json();
+
+  return {
+    outputFeatureIds: responseBody.outputFeatureIds,
+    commandJourneyId: responseBody.commandJourneyId
+  };
 }
