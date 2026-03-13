@@ -4,8 +4,8 @@
       v-for="(point, index) in modelValue"
       :key="point.id"
       :index="index"
-      :longitude="point.longitude"
-      :latitude="point.latitude"
+      :longitudeOriginalSrs="point.originalSrsLongitude"
+      :latitudeOriginalSrs="point.originalSrsLatitude"
       @update:longitude="updateLongitude(index, $event)"
       @update:latitude="updateLatitude(index, $event)"
       @add-before="addBefore(index)"
@@ -18,49 +18,64 @@
 <script setup>
 
 import PointCard from "./PointCard.vue";
-import {wgs84ToEd50} from "../js/coordinate-system-utils";
+import {bngToWgs84, bngWkid, ed50ToWgs84, ed50Wkid} from "../js/coordinate-system-utils";
 
 const modelValue = defineModel({
   type: Array,
   required: true
 });
 
+const props = defineProps({
+  srsWkid: {
+    type: Number,
+    required: true
+  }
+});
+
 let nextId = 1;
 
 function createPoint() {
-  const point = { id: nextId++, longitude: 0, latitude: 0 };
-  updateOriginalSrs(point);
+  const point = { id: nextId++, originalSrsLongitude: 0, originalSrsLatitude: 0 };
+  updateWgs84Coordinates(point);
   return point;
 }
 
-function updateOriginalSrs(point) {
-  const lon = Number(point.longitude);
-  const lat = Number(point.latitude);
-  const isLonValid = point.longitude !== undefined && point.longitude !== '' && !isNaN(lon);
-  const isLatValid = point.latitude !== undefined && point.latitude !== '' && !isNaN(lat);
+function updateWgs84Coordinates(point) {
+  const originalSrsLon = Number(point.originalSrsLongitude);
+  const originalSrsLat = Number(point.originalSrsLatitude);
+  const isLonValid = point.originalSrsLongitude !== undefined && point.originalSrsLongitude !== '' && !isNaN(originalSrsLon);
+  const isLatValid = point.originalSrsLatitude !== undefined && point.originalSrsLatitude !== '' && !isNaN(originalSrsLat);
 
+  let [wgs84Lon, wgs84Lat] = [];
   if (isLonValid && isLatValid) {
-    const [originalSrsLon, originalSrsLat] = wgs84ToEd50(lon, lat);
-    point.originalSrsLongitude = originalSrsLon;
-    point.originalSrsLatitude = originalSrsLat;
+    if (props.srsWkid === ed50Wkid) {
+      [wgs84Lon, wgs84Lat] = ed50ToWgs84(originalSrsLon, originalSrsLat);
+    } else if (props.srsWkid === bngWkid) {
+      [wgs84Lon, wgs84Lat] = bngToWgs84(originalSrsLon, originalSrsLat);
+    } else {
+      throw new Error(`Unsupported SRS WKID: ${props.srsWkid}`);
+    }
+
+    point.longitude = wgs84Lon;
+    point.latitude = wgs84Lat;
   } else {
-    point.originalSrsLongitude = undefined;
-    point.originalSrsLatitude = undefined;
+    point.longitude = undefined;
+    point.latitude = undefined;
   }
 }
 
-function updateLongitude(index, value) {
+function updateLongitude(index, originalSrsLon) {
   const updated = [...modelValue.value];
-  const point = { ...updated[index], longitude: value };
-  updateOriginalSrs(point);
+  const point = { ...updated[index], originalSrsLongitude: originalSrsLon };
+  updateWgs84Coordinates(point);
   updated[index] = point;
   modelValue.value = updated;
 }
 
-function updateLatitude(index, value) {
+function updateLatitude(index, originalSrsLat) {
   const updated = [...modelValue.value];
-  const point = { ...updated[index], latitude: value };
-  updateOriginalSrs(point);
+  const point = { ...updated[index], originalSrsLatitude: originalSrsLat };
+  updateWgs84Coordinates(point);
   updated[index] = point;
   modelValue.value = updated;
 }
