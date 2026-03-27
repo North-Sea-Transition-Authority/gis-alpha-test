@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import {computed} from 'vue';
 
 const props = defineProps({
   coordinates: {
@@ -34,6 +34,8 @@ const props = defineProps({
 });
 
 const lineCoordinates = computed(() => {
-  return props.coordinates.map(p => [Number(p.longitude), Number(p.latitude)]);
+  return props.coordinates
+    .filter(p => !Number.isNaN(p.longitude) && !Number.isNaN(p.latitude))
+    .map(p => [Number(p.longitude), Number(p.latitude)]);
 });
 </script>

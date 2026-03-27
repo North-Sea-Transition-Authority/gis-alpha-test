@@ -60,9 +60,10 @@ import {ref, watch} from "vue";
 import {debounce} from "../../../../js/debounce";
 import {getSnapPoints} from "../js/api/snap-points.api";
 import {bngToWgs84, bngWkid, ed50ToWgs84, ed50Wkid, wgs84ToBng, wgs84ToEd50} from "../js/coordinate-system-utils";
+import {areGridPointsAligned, coordToGridIndex, createGridPointId, gridIndexToCoord} from "../js/grid-utils";
 
 const snapPoints = ref([]);
-const selectedPoint = ref(null);
+const selectedPointIndexes = ref(null); // indexX, indexY, id}
 const hoveredPoint = ref(null);
 const previewLine = ref(null);
 
@@ -85,15 +86,18 @@ const getMinSnapZoom = () => {
 
 watch(() => props.coordinates, (points) => {
   if (points.length === 0) {
-    selectedPoint.value = null;
+    selectedPointIndexes.value = null;
     hoveredPoint.value = null;
     previewLine.value = null;
   } else {
     const lastPoint = points[points.length - 1];
-    selectedPoint.value = {
-      id: lastPoint.id,
-      coordinates: [lastPoint.longitude, lastPoint.latitude],
-      originalSrsCoordinates: [lastPoint.originalSrsLongitude, lastPoint.originalSrsLatitude],
+    const indexX = coordToGridIndex(lastPoint.originalSrsLongitude, props.srsWkid, false);
+    const indexY = coordToGridIndex(lastPoint.originalSrsLatitude, props.srsWkid, true);
+    selectedPointIndexes.value = {
+      indexX,
+      indexY,
+      id: createGridPointId(indexX, indexY),
+      coordinates: [lastPoint.longitude, lastPoint.latitude]
     };
   }
 }, { immediate: true });
@@ -155,19 +159,18 @@ const regeneratePointsOnBrowser = () => {
     [originalSrsMaxLon, originalSrsMaxLat] = wgs84ToBng(wgs84MaxLon, wgs84MaxLat);
   }
 
-
-  let spacing;
-  if (props.srsWkid === ed50Wkid) {
-    spacing = 30 / 3600; // 30 arc seconds in decimal degrees
-  } else if (props.srsWkid === bngWkid) {
-    spacing = 500; //500 metres
-  }
-  const originalSrsStartLon = Math.floor(originalSrsMinLon / spacing) * spacing;
-  const originalSrsStartLat = Math.floor(originalSrsMinLat / spacing) * spacing;
+  // Convert map extent to grid indices
+  const minIndexX = coordToGridIndex(originalSrsMinLon, props.srsWkid, false);
+  const maxIndexX = coordToGridIndex(originalSrsMaxLon, props.srsWkid, false);
+  const minIndexY = coordToGridIndex(originalSrsMinLat, props.srsWkid, true);
+  const maxIndexY = coordToGridIndex(originalSrsMaxLat, props.srsWkid, true);
 
   const pointsArray = [];
-  for (let originalSrsLon = originalSrsStartLon; originalSrsLon <= originalSrsMaxLon; originalSrsLon += spacing) {
-    for (let originalSrsLat = originalSrsStartLat; originalSrsLat <= originalSrsMaxLat; originalSrsLat += spacing) {
+  for (let indexX = minIndexX; indexX <= maxIndexX; indexX++) {
+    for (let indexY = minIndexY; indexY <= maxIndexY; indexY++) {
+      // Convert index to coordinate
+      const originalSrsLon = gridIndexToCoord(indexX, props.srsWkid, false);
+      const originalSrsLat = gridIndexToCoord(indexY, props.srsWkid, true);
 
       let [wgs84Lon, wgs84Lat] = [];
       if (props.srsWkid === ed50Wkid) {
@@ -184,7 +187,9 @@ const regeneratePointsOnBrowser = () => {
       }
 
       pointsArray.push({
-        id: `${originalSrsLon},${originalSrsLat}`,
+        id: createGridPointId(indexX, indexY),
+        indexX,
+        indexY,
         coordinates: [wgs84Lon, wgs84Lat],
         originalSrsCoordinates: [originalSrsLon, originalSrsLat],
         displayName,
@@ -197,18 +202,20 @@ const regeneratePointsOnBrowser = () => {
 const handleMouseMove = (event) => {
   const mouseCoordinates = event.coordinate;
 
-  if (!selectedPoint.value) {
+  if (!selectedPointIndexes.value) {
     hoveredPoint.value = findNearestPoint(mouseCoordinates);
     return;
   }
 
-  const nearestAlignedPoint = findNearestPoint(mouseCoordinates, (point) => point.id !== selectedPoint.value.id && pointsAreAligned(point, selectedPoint.value));
+  const nearestAlignedPoint = findNearestPoint(mouseCoordinates, (point) =>
+    point.id !== selectedPointIndexes.value.id && areGridPointsAligned(point, selectedPointIndexes.value)
+  );
 
   hoveredPoint.value = nearestAlignedPoint;
 
   if (nearestAlignedPoint) {
     previewLine.value = {
-      coordinates: [selectedPoint.value.coordinates, nearestAlignedPoint.coordinates]
+      coordinates: [selectedPointIndexes.value.coordinates, nearestAlignedPoint.coordinates]
     };
   } else {
     previewLine.value = null;
@@ -237,15 +244,12 @@ const findNearestPoint = (coordinates, filter) => {
   return nearestPoint;
 };
 
-const pointsAreAligned = (pointA, pointB) => pointA.originalSrsCoordinates[0] === pointB.originalSrsCoordinates[0]
-    || pointA.originalSrsCoordinates[1] === pointB.originalSrsCoordinates[1];
-
 const handleMapClick = () => {
   if (!hoveredPoint.value) {
     return;
   }
 
-  if (selectedPoint.value && (hoveredPoint.value.id === selectedPoint.value.id || !pointsAreAligned(hoveredPoint.value, selectedPoint.value))) {
+  if (selectedPointIndexes.value && (hoveredPoint.value.id === selectedPointIndexes.value.id || !areGridPointsAligned(hoveredPoint.value, selectedPointIndexes.value))) {
     return;
   }
 
@@ -254,12 +258,19 @@ const handleMapClick = () => {
     longitude: hoveredPoint.value.coordinates[0],
     latitude: hoveredPoint.value.coordinates[1],
     originalSrsLongitude: hoveredPoint.value.originalSrsCoordinates[0],
-    originalSrsLatitude: hoveredPoint.value.originalSrsCoordinates[1]
+    originalSrsLatitude: hoveredPoint.value.originalSrsCoordinates[1],
+    gridIndexX: hoveredPoint.value.indexX,
+    gridIndexY: hoveredPoint.value.indexY
   };
 
   emit('update:coordinates', [...props.coordinates, newPoint]);
 
-  selectedPoint.value = hoveredPoint.value;
+  selectedPointIndexes.value = {
+    indexX: hoveredPoint.value.indexX,
+    indexY: hoveredPoint.value.indexY,
+    id: hoveredPoint.value.id,
+    coordinates: hoveredPoint.value.coordinates
+  };
   hoveredPoint.value = null;
   previewLine.value = null;
 };
