@@ -3,6 +3,7 @@ import Polyline from "@arcgis/core/geometry/Polyline.js";
 import * as unionOperator from "@arcgis/core/geometry/operators/unionOperator.js";
 import * as containsOperator from "@arcgis/core/geometry/operators/containsOperator.js";
 import type {ArcGisServiceHandlers} from "../generated/arcgisjs/ArcGisService";
+import * as multiPartToSinglePartOperator from "@arcgis/core/geometry/operators/multiPartToSinglePartOperator.js";
 
 export const findParentLine: ArcGisServiceHandlers["findParentLine"] = (call, callback) => {
     try {
@@ -46,13 +47,18 @@ export const findParentLine: ArcGisServiceHandlers["findParentLine"] = (call, ca
 
         groups.forEach((childPolylines, parentId) => {
             try {
-                const mergedGeometry = unionOperator.executeMany(childPolylines);
+                const mergedPolyline = unionOperator.executeMany(childPolylines);
 
-                if (mergedGeometry) {
-                    reconstructedLines.push({
-                        parentId: parentId,
-                        esriJsonPolyline: JSON.stringify(mergedGeometry.toJSON())
-                    });
+                // Separate lines with multiple paths into single-path lines
+                const singlePathPolylines = multiPartToSinglePartOperator.executeMany([mergedPolyline]) as Polyline[];
+
+                if (singlePathPolylines) {
+                    singlePathPolylines.forEach(polyline => {
+                        reconstructedLines.push({
+                            parentId: parentId,
+                            esriJsonPolyline: JSON.stringify(polyline.toJSON())
+                        });
+                    })
                 }
             } catch (err) {
                 console.error(`Batch union failed for parent ${parentId}`, err);
