@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import 'LineWithId.proto';
+
+message FindNorthwestmostLineRequest {
+  repeated LineWithId lines = 1;
+}

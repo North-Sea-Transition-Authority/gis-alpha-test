@@ -31,6 +31,7 @@ import {verifyPolygonsAreTopologicallyEqual} from "./handlers/verify-polygons-ar
 import {convertEsriJsonPolygonToGeoJson} from "./handlers/convert-esri-json-polygon-to-geo-json.js";
 import {coordinatesToPolyline} from "./handlers/coordinates-to-polyline";
 import {getSnapPoints} from "./handlers/get-snap-points";
+import {findNorthwestmostLine} from "./handlers/find-northwestmost-line";
 
 //We need to host a version of the ESRI CDN so the library can run offline.
 //https://developers.arcgis.com/javascript/latest/faq/#can-i-host-the-arcgis-cdn-modules-locally
@@ -103,7 +104,8 @@ function main() {
     verifyPolygonsAreTopologicallyEqual,
     projectPolygons,
     coordinatesToPolyline,
-    getSnapPoints
+    getSnapPoints,
+    findNorthwestmostLine
   });
 
   const bindAddress = '0.0.0.0:8082';

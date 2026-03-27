@@ -26,6 +26,8 @@ import "CoordinatesToPolylineRequest.proto";
 import "CoordinatesToPolylineResponse.proto";
 import "GetSnapPointsRequest.proto";
 import "GetSnapPointsResponse.proto";
+import "FindNorthwestmostLineRequest.proto";
+import "FindNorthwestmostLineResponse.proto";
 
 option java_multiple_files = true;
 option java_package = "com.example.grpc";
@@ -53,6 +55,7 @@ service ArcGisService {
   rpc verifyPolygonsAreTopologicallyEqual (TopologicallyEqualRequest) returns (TopologicallyEqualResponse) {};
   rpc coordinatesToPolyline (CoordinatesToPolylineRequest) returns (CoordinatesToPolylineResponse) {};
   rpc getSnapPoints (GetSnapPointsRequest) returns (GetSnapPointsResponse) {};
+  rpc findNorthwestmostLine (FindNorthwestmostLineRequest) returns (FindNorthwestmostLineResponse) {};
 }
 
 message GeoJsonRequest {

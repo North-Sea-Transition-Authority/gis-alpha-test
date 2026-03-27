@@ -5,6 +5,7 @@ import arcgisjs.BatchConvertGeoJsonToEsriJsonResponse;
 import arcgisjs.CoordinatePairOuterClass;
 import arcgisjs.CoordinatesToPolylineRequestOuterClass;
 import arcgisjs.EsriJsonLineWithNavigationTypeAndIdOuterClass;
+import arcgisjs.FindNorthwestmostLineRequestOuterClass;
 import arcgisjs.GeneralizePolygonRequestOuterClass;
 import arcgisjs.GeoJsonLineInputOuterClass;
 import arcgisjs.GetSnapPointsRequestOuterClass;
@@ -462,5 +463,24 @@ public class GrpcClientService {
         .stream()
         .map(point -> new SnapPoint(point.getId(), point.getWgs84CoordinatesEsriJson(), point.getOriginalSrsCoordinatesEsriJson()))
         .toList();
+  }
+
+  /**
+   * Get the UUID of the line with the northwestmost start point.
+   * @param idToLine Map of line UUID to line entity. All lines should belong to the same ring.
+   * @return The UUID of the line with the northwestmost start point.
+   */
+  public UUID findNorthwestmostLine(Map<UUID, Line> idToLine) {
+    var request = FindNorthwestmostLineRequestOuterClass.FindNorthwestmostLineRequest.newBuilder()
+        .addAllLines(idToLine.entrySet().stream()
+            .map(lineEntry -> LineWithIdOuterClass.LineWithId.newBuilder()
+                .setId(lineEntry.getKey().toString())
+                .setPolyLineEsriJson(lineEntry.getValue().getLineJson())
+                .build())
+            .toList())
+        .build();
+
+    var response = arcgisClient.findNorthwestmostLine(request);
+    return UUID.fromString(response.getLineId());
   }
 }

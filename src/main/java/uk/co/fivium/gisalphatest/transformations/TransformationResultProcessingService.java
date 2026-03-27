@@ -102,7 +102,8 @@ public class TransformationResultProcessingService {
     //unorderedLines.forEach(line -> pool.add(LineWrapper.fromEntity(line)));
 
     //node server version
-    pool.addAll(grpcClientService.getLineStartAndEndpoints(unorderedLines));
+    List<LineWrapper> allLineWrappers = grpcClientService.getLineStartAndEndpoints(unorderedLines);
+    pool.addAll(allLineWrappers);
 
     int ringNumberCounter = 0;
     while (!pool.isEmpty()) {
@@ -127,6 +128,7 @@ public class TransformationResultProcessingService {
           isRingClosed = true;
         }
       }
+      rotateRingToStartAtNorthwestmostPoint(allLineWrappers, ringNumberCounter);
       ringNumberCounter++;
     }
   }
@@ -136,6 +138,48 @@ public class TransformationResultProcessingService {
     return pool.stream()
         .filter(lineWrapper -> lineWrapper.start().getXY().equals(targetStart.getXY()))
         .findFirst();
+  }
+
+  void rotateRingToStartAtNorthwestmostPoint(List<LineWrapper> lineWrappers, int ringNumber) {
+    List<LineWrapper> ringLines = lineWrappers.stream()
+        .filter(lw -> lw.line().getRingNumber() != null && lw.line().getRingNumber() == ringNumber)
+        .toList();
+    if (ringLines.isEmpty()) {
+      return;
+    }
+
+    //lines haven't been persisted yet
+    Map<UUID, Line> tempIdToLine = new HashMap<>();
+    Map<UUID, LineWrapper> tempIdToLineWrapper = new HashMap<>();
+    ringLines.forEach(lineWrapper -> {
+      var tempId = UUID.randomUUID();
+      tempIdToLine.put(tempId, lineWrapper.line());
+      tempIdToLineWrapper.put(tempId, lineWrapper);
+    });
+
+    LineWrapper startLine = tempIdToLineWrapper.get(grpcClientService.findNorthwestmostLine(tempIdToLine));
+
+    int startLineIndex = startLine.line().getRingConnectionOrder();
+    if (startLineIndex == 1) {
+      // Already starts at the correct line
+      return;
+    }
+
+    // Rotate the ring connection order so the NW-most line becomes #1
+    // This is a circular rotation that "cuts" at startLineIndex and moves it to the front
+    // Example: if startLineIndex=3 and there are 4 lines total: [1,2,3,4] -> [3,4,1,2]
+    ringLines.forEach(lineWrapper -> {
+      int oldIndex = lineWrapper.line().getRingConnectionOrder();
+      int newOrder;
+
+      if (oldIndex >= startLineIndex) {
+        newOrder = oldIndex - startLineIndex + 1;
+      } else {
+        newOrder = ringLines.size() - startLineIndex + 1 + oldIndex;
+      }
+
+      lineWrapper.line().setRingConnectionOrder(newOrder);
+    });
   }
 
   public void validateLinesAreValid(List<Line> newLineEntities, String outputPolygonEsriJson) {

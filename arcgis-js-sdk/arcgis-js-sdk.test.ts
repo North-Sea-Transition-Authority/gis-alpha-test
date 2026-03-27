@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import {expect, test} from 'vitest'
 import * as densifyOperator from "@arcgis/core/geometry/operators/densifyOperator";
 import * as geodeticDensifyOperator from "@arcgis/core/geometry/operators/geodeticDensifyOperator";
 import * as generalizeOperator from "@arcgis/core/geometry/operators/generalizeOperator";
@@ -12,6 +12,8 @@ import Polyline from "@arcgis/core/geometry/Polyline";
 import Polygon from "@arcgis/core/geometry/Polygon";
 import fs from 'node:fs';
 import * as Terraformer from "@terraformer/arcgis"
+// Tests for findNorthwestmostLine handler
+import {findNorthwestmostLine} from "./handlers/find-northwestmost-line";
 
 const WKID_ED50 = 4230;
 const WKID_BNG = 27700;
@@ -375,3 +377,254 @@ function roundPoints(points: any[][], decimalPlaces: number): any[][] {
     Math.round(point[1] * multiplier) / multiplier
   ]);
 }
+
+test('Find northwestmost line - simple square', async () => {
+  // Create a simple square where line at (0, 10) is NW-most
+  // Square corners (clockwise from SW): (0,0) -> (10,0) -> (10,10) -> (0,10) -> (0,0)
+  const lines = [
+    {
+      id: 'line1',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[0, 0], [10, 0]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'line2',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[10, 0], [10, 10]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'line3',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[10, 10], [0, 10]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'line4',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[0, 10], [0, 0]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    }
+  ];
+
+  const result = await new Promise((resolve, reject) => {
+    findNorthwestmostLine(
+      { request: { lines } } as any,
+      (error, response) => {
+        if (error) reject(error);
+        else resolve(response);
+      }
+    );
+  }) as any;
+
+  // Line 4 starts at (0, 10) which is the NW-most point
+  expect(result.lineId).toBe('line4');
+});
+
+test('Find northwestmost line - rectangle with clear NW corner', async () => {
+  // Rectangle where point at (100, 500) is clearly NW-most
+  const lines = [
+    {
+      id: 'south',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[100, 100], [400, 100]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'east',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[400, 100], [400, 500]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'north',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[400, 500], [100, 500]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'west',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[100, 500], [100, 100]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    }
+  ];
+
+  const result = await new Promise((resolve, reject) => {
+    findNorthwestmostLine(
+      { request: { lines } } as any,
+      (error, response) => {
+        if (error) reject(error);
+        else resolve(response);
+      }
+    );
+  }) as any;
+
+  // 'west' line starts at (100, 500) which is the NW-most point
+  expect(result.lineId).toBe('west');
+});
+
+test('Find northwestmost line - same latitude, westernmost wins', async () => {
+  // Multiple points at same latitude, westernmost should win
+  const lines = [
+    {
+      id: 'line1',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[5, 50], [10, 45]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'line2',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[10, 45], [15, 50]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'line3',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[15, 50], [0, 50]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'line4',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[0, 50], [5, 50]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    }
+  ];
+
+  const result = await new Promise((resolve, reject) => {
+    findNorthwestmostLine(
+      { request: { lines } } as any,
+      (error, response) => {
+        if (error) reject(error);
+        else resolve(response);
+      }
+    );
+  }) as any;
+
+  // line4 starts at (0, 50) which is westernmost at the highest latitude
+  expect(result.lineId).toBe('line4');
+});
+
+test('Find northwestmost line - ED50 coordinates', async () => {
+  // Test with ED50 (geographic) coordinates
+  // Points around UK: SW corner, SE corner, NE corner, NW corner
+  const lines = [
+    {
+      id: 'south',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[-6, 50], [2, 50]]],
+        spatialReference: { wkid: WKID_ED50 }
+      })
+    },
+    {
+      id: 'east',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[2, 50], [2, 58]]],
+        spatialReference: { wkid: WKID_ED50 }
+      })
+    },
+    {
+      id: 'north',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[2, 58], [-6, 58]]],
+        spatialReference: { wkid: WKID_ED50 }
+      })
+    },
+    {
+      id: 'west',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[-6, 58], [-6, 50]]],
+        spatialReference: { wkid: WKID_ED50 }
+      })
+    }
+  ];
+
+  const result = await new Promise((resolve, reject) => {
+    findNorthwestmostLine(
+      { request: { lines } } as any,
+      (error, response) => {
+        if (error) reject(error);
+        else resolve(response);
+      }
+    );
+  }) as any;
+
+  // 'west' line starts at (-6, 58) which is the NW-most point
+  expect(result.lineId).toBe('west');
+});
+
+test('Find northwestmost line - NW reference not at any actual point', async () => {
+  // Create a trapezoid where (minX, maxY) is NOT at any actual start point
+  // This tests the true "closest to NW" behavior
+  //
+  //     (5, 100) ----------- (15, 100)  <- maxY is 100
+  //       /                       \
+  //   (0, 50) ------------------- (20, 50)  <- minX is 0
+  //
+  // NW reference would be at (0, 100) which doesn't exist
+  // Line starting at (5, 100) should be closest to this theoretical NW point
+
+  const lines = [
+    {
+      id: 'top',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[5, 100], [15, 100]]],  // Starts at (5, 100) - should be NW-most
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'right',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[15, 100], [20, 50]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'bottom',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[20, 50], [0, 50]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    },
+    {
+      id: 'left',
+      polyLineEsriJson: JSON.stringify({
+        paths: [[[0, 50], [5, 100]]],
+        spatialReference: { wkid: WKID_BNG }
+      })
+    }
+  ];
+
+  const result = await new Promise((resolve, reject) => {
+    findNorthwestmostLine(
+      { request: { lines } } as any,
+      (error, response) => {
+        if (error) reject(error);
+        else resolve(response);
+      }
+    );
+  }) as any;
+
+  // 'top' line starts at (5, 100) which is closest to theoretical NW point (0, 100)
+  // Distance from (5, 100) to (0, 100) = 5
+  // Other candidates:
+  // - (15, 100) to (0, 100) = 15 (farther)
+  // - (0, 50) to (0, 100) = 50 (farther)
+  // - (20, 50) to (0, 100) = sqrt(20^2 + 50^2) ≈ 53.85 (farther)
+  expect(result.lineId).toBe('top');
+});
