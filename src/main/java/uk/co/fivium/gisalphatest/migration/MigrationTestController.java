@@ -50,7 +50,15 @@ public class MigrationTestController {
             new OracleShapeCompositeKey(27912658, "GISA-65"),
             new OracleShapeCompositeKey(27912705, "GISA-65"),
 
-            new OracleShapeCompositeKey(26282337, "GISA-146")
+            new OracleShapeCompositeKey(26282337, "GISA-146"),
+
+            new OracleShapeCompositeKey(51662549, "GISA-115"),
+            new OracleShapeCompositeKey(51663540, "GISA-115"),
+            new OracleShapeCompositeKey(51662110, "GISA-115"),
+            new OracleShapeCompositeKey(51662171, "GISA-115"),
+            new OracleShapeCompositeKey(51661936, "GISA-115"),
+            new OracleShapeCompositeKey(51662326, "GISA-115"),
+            new OracleShapeCompositeKey(51662420, "GISA-115")
         ),
         true
     );
@@ -84,8 +92,6 @@ public class MigrationTestController {
     polygonService.getPolygonsAsEsriJson(56973846, "GISA-36", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(56973884, "GISA-38", false).forEach(System.out::println);
 
-    polygonService.getPolygonsAsEsriJson(27912658, "GISA-65", false).forEach(System.out::println);
-    polygonService.getPolygonsAsEsriJson(27912705, "GISA-65", false).forEach(System.out::println);
 
     polygonService.getPolygonsAsEsriJson(56222528, "GISA-144", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(56241285, "GISA-144", false).forEach(System.out::println);
@@ -93,6 +99,14 @@ public class MigrationTestController {
     polygonService.getPolygonsAsEsriJson(26282337, "GISA-146", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(56226541, "GISA-146", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(56226560, "GISA-146", false).forEach(System.out::println);
+
+    polygonService.getPolygonsAsEsriJson(51662549, "GISA-115", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(51663540, "GISA-115", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(51662110, "GISA-115", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(51662171, "GISA-115", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(51661936, "GISA-115", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(51662326, "GISA-115", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(51662420, "GISA-115", false).forEach(System.out::println);
 
     migrationService.verifySubareasTopologicallyEqualToBlock(5610939, "GISA-36 and GISA-38");
 

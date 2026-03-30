@@ -112,6 +112,8 @@ public class MigrationService {
         var newPolygon = migratePolygon(
             oraclePolygon.getPolygonSidId(),
             newFeature,
+            oraclePolygon.getFeatureOffsetHighM(),
+            oraclePolygon.getFeatureOffsetLowM(),
             Map.of() //TODO: Set attributes
         );
 
@@ -313,6 +315,12 @@ public class MigrationService {
       }
 
       featureAreaService.calculateFeatureArea(feature);
+
+      if (ShapeType.REF_BLOCK.equals(feature.getType())){
+        // oracle ref blocks don't have an area measurement so we don't care about the difference.
+        continue;
+      }
+
       featureAreaService.calculateAreaDifference(feature, oracleService.getOracleShapeArea(new OracleShapeCompositeKey(feature.getShapeSidId(), feature.getTestCase())));
       if (feature.getAreaDifference().abs().compareTo(BigDecimal.valueOf(20)) > 0) {
         LOGGER.warn("Shape id {} has new area greater than 20 metres squared different to oracle. Difference: {} ",
@@ -353,12 +361,16 @@ public class MigrationService {
   private Polygon migratePolygon(
       Integer polygonSidId,
       Feature feature,
+      Long startDepth,
+      Long endDepth,
       Map<String, Object> attributes
   ) {
     var polygon = new Polygon();
     polygon.setOraclePolygonSsid(polygonSidId);
     polygon.setAttributes(attributes);
     polygon.setFeature(feature);
+    polygon.setStartDepth(startDepth);
+    polygon.setEndDepth(endDepth);
     return polygon;
   }
 
