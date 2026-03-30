@@ -24,4 +24,6 @@ public interface FeatureRepository extends ListCrudRepository<Feature, UUID> {
   List<Feature> findAllByCreatedByCommand(TransformationCommand command);
 
   List<Feature> findAllByType(ShapeType type);
+
+  List<Feature> findAllByTestCase(String testCase);
 }
