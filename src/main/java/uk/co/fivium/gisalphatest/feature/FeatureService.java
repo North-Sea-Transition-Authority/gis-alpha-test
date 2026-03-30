@@ -9,6 +9,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.migration.Srs;
+import uk.co.fivium.gisalphatest.oracle.ShapeType;
 import uk.co.fivium.gisalphatest.util.StreamUtil;
 
 @Service
@@ -106,7 +107,7 @@ public class FeatureService {
     Feature feature = new Feature();
     feature.setShapeSidId(id);
     feature.setFeatureName(name);
-    feature.setType(FeatureType.POLYGON);
+    feature.setType(ShapeType.BLOCK);
     feature.setSrs(Srs.ED50.getWkid());
     feature.setTestCase(testCase);
     return featureRepository.save(feature);
@@ -143,6 +144,10 @@ public class FeatureService {
   public Map<String, String> getFeatureIdNameMap() {
     return featureRepository.findAllByActive(true).stream()
         .sorted(Comparator.comparing(Feature::getFeatureName))
-        .collect(StreamUtil.toLinkedHashMap(feature -> feature.getId().toString(), Feature::getFeatureName));
+        .collect(StreamUtil.toLinkedHashMap(
+                feature -> feature.getId().toString(),
+                feature -> "%s %s".formatted(feature.getFeatureName(), feature.getType())
+            )
+        );
   }
 }

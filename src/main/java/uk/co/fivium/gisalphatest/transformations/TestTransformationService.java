@@ -59,7 +59,7 @@ public class TestTransformationService {
                                    String oracleCutLineTestCase) {
     var polygonsToMigrate = new ArrayList<>(oracleExpectedShapeResults);
     polygonsToMigrate.add(oracleShapeTarget);
-    migrationService.migrate(polygonsToMigrate);
+    migrationService.migrate(polygonsToMigrate, true);
     migrationService.migrateFeatureAreas();
 
     var migratedTargetPolygon = featureRepository.findAllByShapeSidId(oracleShapeTarget.getShapeSidId()).getFirst();
@@ -87,7 +87,7 @@ public class TestTransformationService {
   @Transactional
   public void testMultipleOracleShapeSplit(List<OracleShapeCompositeKey> oracleShapeTargets,
                                           String oracleCutLineTestCase) {
-    migrationService.migrate(oracleShapeTargets);
+    migrationService.migrate(oracleShapeTargets, true);
     migrationService.migrateFeatureAreas();
 
     var migratedTargetPolygons = featureRepository.findAll();
@@ -108,7 +108,7 @@ public class TestTransformationService {
                               OracleShapeCompositeKey oracleExpectedShapeResult) {
     var polygonsToMigrate = new ArrayList<>(oracleShapeInputs);
     polygonsToMigrate.add(oracleExpectedShapeResult);
-    migrationService.migrate(polygonsToMigrate);
+    migrationService.migrate(polygonsToMigrate, true);
     migrationService.migrateFeatureAreas();
 
     Feature featureInput1 = featureRepository.findAllByShapeSidId(oracleShapeInputs.getFirst().getShapeSidId()).getFirst();

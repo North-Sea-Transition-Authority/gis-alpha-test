@@ -21,7 +21,6 @@ import uk.co.fivium.gisalphatest.feature.Feature;
 import uk.co.fivium.gisalphatest.feature.FeatureAreaService;
 import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.FeatureService;
-import uk.co.fivium.gisalphatest.feature.FeatureType;
 import uk.co.fivium.gisalphatest.feature.Line;
 import uk.co.fivium.gisalphatest.feature.LineNavigationType;
 import uk.co.fivium.gisalphatest.feature.LineRepository;
@@ -32,6 +31,7 @@ import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 import uk.co.fivium.gisalphatest.oracle.OraclePolygonBoundary;
 import uk.co.fivium.gisalphatest.oracle.OracleService;
 import uk.co.fivium.gisalphatest.oracle.OracleShapeCompositeKey;
+import uk.co.fivium.gisalphatest.oracle.ShapeType;
 import uk.co.fivium.gisalphatest.transformations.command.CommandJourneyRepository;
 import uk.co.fivium.gisalphatest.transformations.command.TransformationCommandRepository;
 
@@ -55,7 +55,6 @@ public class MigrationService {
   private final FeatureAreaService featureAreaService;
   private final TransformationCommandRepository transformationCommandRepository;
   private final CommandJourneyRepository commandJourneyRepository;
-
   MigrationService(
       LineRepository lineRepository,
       PolygonRepository polygonRepository,
@@ -67,7 +66,8 @@ public class MigrationService {
       GrpcClientService grpcClientService,
       FeatureAreaService featureAreaService,
       TransformationCommandRepository transformationCommandRepository,
-      CommandJourneyRepository commandJourneyRepository) {
+      CommandJourneyRepository commandJourneyRepository
+  ) {
     this.lineRepository = lineRepository;
     this.polygonRepository = polygonRepository;
     this.featureRepository = featureRepository;
@@ -82,16 +82,23 @@ public class MigrationService {
   }
 
   @Transactional
-  public void migrate(Collection<OracleShapeCompositeKey> ids) {
+  public void migrate(Collection<OracleShapeCompositeKey> ids, boolean shouldReset) {
 
     //Added this to make testing on local dev easier
-    resetDataBase();
+    if (shouldReset) {
+      resetDataBase();
+    }
 
     var entityBackedOracleShapes = oracleService.getEntityBackedOracleShapes(ids);
 
     for (var entityBackedShape : entityBackedOracleShapes) {
       System.out.printf("migrating %s %s%n", entityBackedShape.shape().getShapeSidId(), entityBackedShape.shape().getShapeName());
       var newFeature = migrateFeature(entityBackedShape);
+
+      var licenseBlocks = new ArrayList<Feature>();
+      if (entityBackedShape.shape().getShapeType() == ShapeType.REF_BLOCK) {
+        licenseBlocks.addAll(findLicenseBlocksForRefBlock(entityBackedShape.shape().getShapeName()));
+      }
 
       Map<Polygon, List<Line>> polygonToLine = new HashMap<>();
 
@@ -104,6 +111,24 @@ public class MigrationService {
             newFeature,
             Map.of() //TODO: Set attributes
         );
+
+        if (entityBackedShape.shape().getShapeType() == ShapeType.REF_BLOCK) {
+          var newLines = migrateRefBlockLines(
+              newFeature,
+              newPolygon,
+              oracleBoundaries,
+              entityBackedShape,
+              lineRepository.findAllByPolygon_FeatureIn(licenseBlocks)
+                  .stream()
+                  .filter(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))
+                  .toList()
+          );
+
+          polygonToLine.put(newPolygon, newLines);
+
+
+          continue;
+        }
 
         var parentLines = new ArrayList<String>();
         if (newFeature.getParentFeatureId() != null) {
@@ -176,6 +201,27 @@ public class MigrationService {
     verifyChildGeodesicLinesOverlapParents();
   }
 
+
+  public void verifyAllLicensesAreInsideReferenceBlocks() {
+    var refBlocks = featureRepository.findAllByType(ShapeType.REF_BLOCK);
+
+    for (var refBlock : refBlocks) {
+      var licenseBlocks = findLicenseBlocksForRefBlock(refBlock.getFeatureName());
+
+      var refBlockJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(refBlock, false));
+      for  (var licenseBlock : licenseBlocks) {
+        var licenseBlockJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(licenseBlock, false));
+        if (!grpcClientService.checkParentContainsChild(refBlockJson, licenseBlockJson)) {
+          throw new IllegalStateException("License block %s not contained by ref block %s".formatted(licenseBlock.getFeatureName(), refBlock.getFeatureName()));
+        }
+      }
+
+    }
+    System.out.println("All license blocks are contained by their reference blocks");
+
+    verifyLicenseBlockGeodesicLinesOverlapReferenceBlockGeodesics();
+  }
+
   private void verifyChildGeodesicLinesOverlapParents() {
     var childFeatures = featureRepository.findAllByParentFeatureIdIsNotNull();
     for (var child : childFeatures) {
@@ -189,10 +235,34 @@ public class MigrationService {
           .orElseThrow(() -> new IllegalStateException("Parent feature not found for child %s".formatted(child.getId())));
       var parentLines = getLinesFromFeature(featureService.getEntityBackedFeature(parent));
 
-      var overlaps = grpcClientService.verifyChildGeodesicLinesOverlapParents(parentLines, childLines);
+      var overlaps = grpcClientService.verifyChildGeodesicLinesOverlapParents(parentLines, childLines, false);
 
       System.out.printf("Child shape's '%s' geodesic lines overlap parent shape's '%s' geodesic lines: %s%n"
           .formatted(child.getFeatureName(), parent.getFeatureName(), overlaps));
+    }
+  }
+
+  private void verifyLicenseBlockGeodesicLinesOverlapReferenceBlockGeodesics() {
+    var refBlocks = featureRepository.findAllByType(ShapeType.REF_BLOCK);
+    for (var refBlock : refBlocks) {
+      for (var licenseBlocks: findLicenseBlocksForRefBlock(refBlock.getFeatureName())) {
+        var childLines = getLinesFromFeature(featureService.getEntityBackedFeature(licenseBlocks));
+
+        if (childLines.stream().noneMatch(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))) {
+          continue;
+        }
+
+        var parentLines = getLinesFromFeature(featureService.getEntityBackedFeature(refBlock));
+
+        var overlaps = grpcClientService.verifyChildGeodesicLinesOverlapParents(parentLines, childLines, true);
+
+        var validationMessage = "License block '%s' geodesic lines overlap ref blocks '%s' geodesic lines: %s%n"
+            .formatted(licenseBlocks.getFeatureName(), refBlock.getFeatureName(), overlaps);
+        if (!overlaps) {
+          throw new IllegalStateException(validationMessage);
+        }
+        System.out.printf(validationMessage);
+      }
     }
   }
 
@@ -251,7 +321,7 @@ public class MigrationService {
     newFeature.setTestCase(entityBackedShape.shape().getTestCase());
     newFeature.setSrs(fromOracleName(entityBackedShape.shape().getShapeSrs()).getWkid());
 
-    newFeature.setType(FeatureType.POLYGON);
+    newFeature.setType(entityBackedShape.shape().getShapeType());
 
     var parentShapeId = entityBackedShape.shape().getParentShapeId();
     if (parentShapeId != null) {
@@ -319,5 +389,72 @@ public class MigrationService {
       newLines.add(line);
     }
     return newLines;
+  }
+
+  /**
+   * This method will send the ref block lines to the node server so they can be processed by being converted to esriJSON,
+   * densifying the geodesics and copying the license geodesics points onto the ref block geodesic.
+   * @param feature The feature (ref block) we are currently migrating
+   * @param polygon The polygon of the feature (ref block) we are currently migration
+   * @param oracleBoundaries The oracle boundary of the current shape
+   * @param entityBackedShape The oracle entityBackedShape object for the shape being migrated
+   * @param licenseLines - All geodesic lines of all license blocks that are within the ref block
+   * @return migrated line entities.
+   */
+  private List<Line> migrateRefBlockLines(
+      Feature feature,
+      Polygon polygon,
+      List<OraclePolygonBoundary> oracleBoundaries,
+      EntityBackedOracleShape entityBackedShape,
+      List<Line> licenseLines
+  ) {
+// Collect all lines for this polygon to batch the gRPC call
+    List<OracleBoundaryLineWithRing> linesWithRing = new ArrayList<>();
+    for (var oracleBoundary : oracleBoundaries) {
+      for (var oracleLine : entityBackedShape.boundaryToLine().get(oracleBoundary)) {
+        linesWithRing.add(new OracleBoundaryLineWithRing(oracleLine, oracleBoundaries.indexOf(oracleBoundary)));
+      }
+    }
+
+    // Single batch gRPC call for all lines in this polygon
+    Map<Integer, String> esriJsonByLineSsid = grpcClientService.migrateReferenceBlock(
+        linesWithRing,
+        feature.getSrs(),
+        licenseLines
+    );
+
+    // Create Line entities from the batch results
+    List<Line> newLines = new ArrayList<>();
+    for (var entry : linesWithRing) {
+      var oracleLine = entry.oracleBoundaryLine();
+      var oracleLineSsid = oracleLine.getLineSidId().intValue();
+
+      if (esriJsonByLineSsid.get(oracleLineSsid) == null){
+        continue;
+      }
+
+      var line = new Line();
+      line.setOracleLineSsid(oracleLineSsid);
+      line.setAttributes(Map.of());
+      line.setPolygon(polygon);
+      line.setNavigationType(oracleLine.getLineNavigationType());
+      line.setBoundarySidId(oracleLine.getBoundarySidId().intValue());
+      line.setLineJson(esriJsonByLineSsid.get(oracleLineSsid));
+      line.setRingNumber(entry.ringNumber());
+      line.setRingConnectionOrder(oracleLine.getConnectionOrder().intValue());
+
+
+
+      newLines.add(line);
+    }
+    return newLines;
+  }
+
+  private List<Feature> findLicenseBlocksForRefBlock(String refBlockName) {
+    return featureRepository.findAllByType(ShapeType.BLOCK)
+        .stream()
+        .filter(licenseBlock -> licenseBlock.getFeatureName().startsWith(refBlockName))
+        .toList();
+
   }
 }

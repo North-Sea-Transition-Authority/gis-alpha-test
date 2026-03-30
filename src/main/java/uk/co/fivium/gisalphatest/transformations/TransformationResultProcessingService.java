@@ -204,7 +204,7 @@ public class TransformationResultProcessingService {
       newFeature.setSrs(targets.getFirst().getSrs());
       newFeature.setFeatureName(afterMerge);
       newFeature.setTestCase(afterMerge);
-      newFeature.setType(FeatureType.POLYGON);
+      newFeature.setType(targets.getFirst().getType());
     }
     featureRepository.save(newFeature);
 

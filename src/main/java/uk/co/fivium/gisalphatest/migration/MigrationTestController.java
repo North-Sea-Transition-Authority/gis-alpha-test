@@ -49,12 +49,23 @@ public class MigrationTestController {
 
             new OracleShapeCompositeKey(27912658, "GISA-65"),
             new OracleShapeCompositeKey(27912705, "GISA-65")
-        )
+        ),
+        true
     );
 
+    // Migrate reference blocks after licenses
+    migrationService.migrate(
+        List.of(
+            new OracleShapeCompositeKey(56222528, "GISA-144"),
+            new OracleShapeCompositeKey(56241285, "GISA-144")
+        ),
+        false
+    );
+
+    migrationService.verifyAllLicensesAreInsideReferenceBlocks();
     migrationService.verifyAllChildFeaturesAreInsideParentFeatures();
 
-    //Validate by building all the polygons based on the esri json lines
+//    Validate by building all the polygons based on the esri json lines
     polygonService.getPolygonsAsEsriJson(23922223, "GISA-27", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(23922738, "GISA-27", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(29960964, "GISA-63", false).forEach(System.out::println);
@@ -71,6 +82,9 @@ public class MigrationTestController {
 
     polygonService.getPolygonsAsEsriJson(27912658, "GISA-65", false).forEach(System.out::println);
     polygonService.getPolygonsAsEsriJson(27912705, "GISA-65", false).forEach(System.out::println);
+
+    polygonService.getPolygonsAsEsriJson(56222528, "GISA-144", false).forEach(System.out::println);
+    polygonService.getPolygonsAsEsriJson(56241285, "GISA-144", false).forEach(System.out::println);
 
     migrationService.verifySubareasTopologicallyEqualToBlock(5610939, "GISA-36 and GISA-38");
 

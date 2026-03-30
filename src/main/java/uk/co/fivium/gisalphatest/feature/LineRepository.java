@@ -12,4 +12,6 @@ public interface LineRepository extends ListCrudRepository<Line, UUID> {
   List<Line> findAllByPolygonIn(List<Polygon> polygons);
 
   void deleteAllByPolygon_FeatureIn(Collection<Feature> features);
+
+  List<Line> findAllByPolygon_FeatureIn(List<Feature> features);
 }

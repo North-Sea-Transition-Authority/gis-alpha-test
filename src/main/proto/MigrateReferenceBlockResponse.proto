@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import "EsriJsonLineToLineSsid.proto";
+
+message MigrateReferenceBlockResponse {
+  repeated EsriJsonLineOutput esriJsonLineWithId = 1;
+}
+

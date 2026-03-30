@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package arcgisjs;
+
+import "GeoJsonLineInput.proto";
+import "EsriJsonLineWithNavigationTypeAndId.proto";
+
+message MigrateReferenceBlockRequest {
+  repeated GeoJsonLineInput referenceBlockGeoJsonLinesWithType = 1;
+  int32 wkid = 2;
+  repeated EsriJsonLineWithNavigationTypeAndId licenseBlockLines = 3;
+}
+

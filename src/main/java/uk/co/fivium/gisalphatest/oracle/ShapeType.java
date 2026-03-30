@@ -6,5 +6,6 @@ public enum ShapeType {
   AFTER_SUBAREA,
   BLOCK,
   BEFORE_BLOCK,
-  AFTER_BLOCK
+  AFTER_BLOCK,
+  REF_BLOCK
 }

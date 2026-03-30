@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
 import uk.co.fivium.gisalphatest.transformations.command.TransformationCommand;
+import uk.co.fivium.gisalphatest.oracle.ShapeType;
 
 @Entity
 @Table(name = "features")
@@ -23,7 +24,7 @@ public class Feature {
   private Integer shapeSidId;
 
   @Enumerated(EnumType.STRING)
-  private FeatureType type;
+  private ShapeType type;
 
   private Integer srs;
 
@@ -55,11 +56,11 @@ public class Feature {
     this.shapeSidId = shapeSidId;
   }
 
-  public FeatureType getType() {
+  public ShapeType getType() {
     return type;
   }
 
-  public void setType(FeatureType type) {
+  public void setType(ShapeType type) {
     this.type = type;
   }
 

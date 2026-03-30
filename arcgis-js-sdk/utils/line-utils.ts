@@ -4,6 +4,7 @@ import * as proximityOperator from "@arcgis/core/geometry/operators/proximityOpe
 import {LineWithNavigationTypeAndId} from "../handlers/point-connects-to-line-on-set-bearing";
 
 export const FIVE_CM_IN_DEGREES_AT_48N_ED50 = 0.000000670;
+export const ONE_HUNDRED_METERS_ED50 = FIVE_CM_IN_DEGREES_AT_48N_ED50 * 200;
 
 export function getStartAndEndNodes(polyline: Polyline) {
     const childStartPoint = polyline.getPoint(0, 0);

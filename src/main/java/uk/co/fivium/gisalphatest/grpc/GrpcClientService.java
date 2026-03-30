@@ -13,6 +13,8 @@ import arcgisjs.GetStartAndEndPointsRequestOuterClass;
 import arcgisjs.LineWithIdOuterClass;
 import arcgisjs.MergeAndGeneralizeLinesRequestOuterClass;
 import arcgisjs.MergePolygonsRequestOuterClass;
+import arcgisjs.MigrateReferenceBlockRequestOuterClass;
+import arcgisjs.MigrateReferenceBlockResponseOuterClass;
 import arcgisjs.OrderedLineSegmentOuterClass;
 import arcgisjs.ProjectPolygonsRequestOuterClass;
 import arcgisjs.TopologicallyEqualRequestOuterClass.TopologicallyEqualRequest;
@@ -121,6 +123,52 @@ public class GrpcClientService {
 
     Map<Integer, String> result = new HashMap<>();
     for (var lineOutput : response.getLinesList()) {
+      result.put(lineOutput.getOracleLineSsid(), lineOutput.getEsriJsonString());
+    }
+    return result;
+  }
+
+  /**
+   * Migrates reference block lines by converting GeoJSON to EsriJSON and aligning with license block lines.
+   * @param referenceBlockLinesWithRing list of records containing the OracleBoundaryLine and its ring number
+   * @param wkid the spatial reference Well Known ID
+   * @param licenseBlockLines list of lines from the parent license block
+   * @return A map of oracleLineSsid to EsriJSON polyline string
+   */
+  public Map<Integer, String> migrateReferenceBlock(
+      List<OracleBoundaryLineWithRing> referenceBlockLinesWithRing,
+      Integer wkid,
+      List<Line> licenseBlockLines
+  ) {
+    var requestBuilder = MigrateReferenceBlockRequestOuterClass.MigrateReferenceBlockRequest.newBuilder()
+        .setWkid(wkid);
+
+    for (var entry : referenceBlockLinesWithRing) {
+      var oracleLine = entry.oracleBoundaryLine();
+      requestBuilder.addReferenceBlockGeoJsonLinesWithType(GeoJsonLineInputOuterClass.GeoJsonLineInput.newBuilder()
+          .setGeoJsonString(oracleLine.getLineGeojson())
+          .setIsGeodesic(oracleLine.getLineNavigationType() != LineNavigationType.LOXODROME)
+          .setOracleLineSsid(oracleLine.getLineSidId().intValue())
+          .setConnectionOrder(oracleLine.getConnectionOrder().intValue())
+          .setRingNumber(entry.ringNumber())
+          .build()
+      );
+    }
+
+    for (Line line : licenseBlockLines) {
+      requestBuilder.addLicenseBlockLines(
+          EsriJsonLineWithNavigationTypeAndIdOuterClass.EsriJsonLineWithNavigationTypeAndId.newBuilder()
+              .setEsriJsonPolyline(line.getLineJson())
+              .setIsGeodesic(!LineNavigationType.LOXODROME.equals(line.getNavigationType()))
+              .build()
+      );
+    }
+
+    MigrateReferenceBlockResponseOuterClass.MigrateReferenceBlockResponse response =
+        arcgisClient.migrateReferenceBlock(requestBuilder.build());
+
+    Map<Integer, String> result = new HashMap<>();
+    for (var lineOutput : response.getEsriJsonLineWithIdList()) {
       result.put(lineOutput.getOracleLineSsid(), lineOutput.getEsriJsonString());
     }
     return result;
@@ -255,19 +303,28 @@ public class GrpcClientService {
    * Verifies that all child geodesic lines overlap their parent geodesic lines.
    * @param parentLines All parent lines with navigation types
    * @param childLines All child lines with navigation types
+   * @param isParentRefBlock True if the parent is a ref block. If true, then cartesian lines will be treated as geodesics.
    * @return true if all child geodesic lines overlap their parent geodesic lines, else false.
    */
   public boolean verifyChildGeodesicLinesOverlapParents(
       List<Line> parentLines,
-      List<Line> childLines
+      List<Line> childLines,
+      boolean isParentRefBlock
   ) {
     var requestBuilder = VerifyChildGeodesicLinesOverlapParentsRequestOuterClass.VerifyChildGeodesicLinesOverlapParentsRequest.newBuilder();
 
     for (Line line : parentLines) {
+      boolean isGeodesic = false;
+      if (isParentRefBlock && !LineNavigationType.LOXODROME.equals(line.getNavigationType())) {
+        isGeodesic =  true;
+      } else {
+        isGeodesic = LineNavigationType.GEODESIC.equals(line.getNavigationType());
+      }
+
       requestBuilder.addParentLines(
           EsriJsonLineWithNavigationTypeAndIdOuterClass.EsriJsonLineWithNavigationTypeAndId.newBuilder()
           .setEsriJsonPolyline(line.getLineJson())
-          .setIsGeodesic(LineNavigationType.GEODESIC.equals(line.getNavigationType()))
+          .setIsGeodesic(isGeodesic)
           .build()
       );
     }

@@ -28,6 +28,8 @@ import "GetSnapPointsRequest.proto";
 import "GetSnapPointsResponse.proto";
 import "FindNorthwestmostLineRequest.proto";
 import "FindNorthwestmostLineResponse.proto";
+import "MigrateReferenceBlockRequest.proto";
+import "MigrateReferenceBlockResponse.proto";
 
 option java_multiple_files = true;
 option java_package = "com.example.grpc";
@@ -56,6 +58,7 @@ service ArcGisService {
   rpc coordinatesToPolyline (CoordinatesToPolylineRequest) returns (CoordinatesToPolylineResponse) {};
   rpc getSnapPoints (GetSnapPointsRequest) returns (GetSnapPointsResponse) {};
   rpc findNorthwestmostLine (FindNorthwestmostLineRequest) returns (FindNorthwestmostLineResponse) {};
+  rpc migrateReferenceBlock (MigrateReferenceBlockRequest) returns (MigrateReferenceBlockResponse) {};
 }
 
 message GeoJsonRequest {
