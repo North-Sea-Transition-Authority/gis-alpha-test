@@ -52,10 +52,10 @@ export const pointConnectsToLoxodromeLineFollowingSetBearing = (point: Point, li
 
 const lineFollowsSetBearing = (pointA: Point, pointB: Point): SetBearing | undefined => {
     if (pointA.x === pointB.x) {
-        return SetBearing.LONGITUDE;
+        return SetBearing.LATITUDE;
     }
     if (pointA.y === pointB.y) {
-        return SetBearing.LATITUDE;
+        return SetBearing.LONGITUDE;
     }
     return undefined;
 }
