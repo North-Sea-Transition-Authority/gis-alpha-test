@@ -30,6 +30,10 @@ public class Polygon {
   @Column(columnDefinition = "jsonb")
   private Map<String, Object> attributes;
 
+  private Long startDepth;
+
+  private Long endDepth;
+
   public UUID getId() {
     return id;
   }
@@ -56,5 +60,21 @@ public class Polygon {
 
   public void setAttributes(Map<String, Object> attributes) {
     this.attributes = attributes;
+  }
+
+  public Long getStartDepth() {
+    return startDepth;
+  }
+
+  public void setStartDepth(Long startDepth) {
+    this.startDepth = startDepth;
+  }
+
+  public Long getEndDepth() {
+    return endDepth;
+  }
+
+  public void setEndDepth(Long endDepth) {
+    this.endDepth = endDepth;
   }
 }

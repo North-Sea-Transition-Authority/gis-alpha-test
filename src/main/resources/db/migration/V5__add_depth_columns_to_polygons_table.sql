@@ -1,0 +1,2 @@
+ALTER TABLE polygons ADD COLUMN start_depth NUMERIC;
+ALTER TABLE polygons ADD COLUMN end_depth NUMERIC;
