@@ -2,6 +2,7 @@
 package uk.co.fivium.gisalphatest.migration;
 
 import static uk.co.fivium.gisalphatest.feature.LineUtils.getLinesFromFeature;
+import static uk.co.fivium.gisalphatest.migration.BrokenBlockUtil.getBrokenLicenseBlockNames;
 import static uk.co.fivium.gisalphatest.migration.Srs.fromOracleName;
 
 import java.math.BigDecimal;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -55,6 +57,7 @@ public class MigrationService {
   private final FeatureAreaService featureAreaService;
   private final TransformationCommandRepository transformationCommandRepository;
   private final CommandJourneyRepository commandJourneyRepository;
+
   MigrationService(
       LineRepository lineRepository,
       PolygonRepository polygonRepository,
@@ -206,7 +209,10 @@ public class MigrationService {
     var refBlocks = featureRepository.findAllByType(ShapeType.REF_BLOCK);
 
     for (var refBlock : refBlocks) {
-      var licenseBlocks = findLicenseBlocksForRefBlock(refBlock.getFeatureName());
+      var licenseBlocks = findLicenseBlocksForRefBlock(refBlock.getFeatureName())
+          .stream()
+          .filter(block -> !getBrokenLicenseBlockNames(refBlock.getFeatureName()).contains(block.getFeatureName()))
+          .collect(Collectors.toSet());
 
       var refBlockJson = grpcClientService.unionPolygons(polygonService.getPolygonsAsEsriJson(refBlock, false));
       for  (var licenseBlock : licenseBlocks) {
@@ -245,8 +251,14 @@ public class MigrationService {
   private void verifyLicenseBlockGeodesicLinesOverlapReferenceBlockGeodesics() {
     var refBlocks = featureRepository.findAllByType(ShapeType.REF_BLOCK);
     for (var refBlock : refBlocks) {
-      for (var licenseBlocks: findLicenseBlocksForRefBlock(refBlock.getFeatureName())) {
-        var childLines = getLinesFromFeature(featureService.getEntityBackedFeature(licenseBlocks));
+
+      var licenseBlocks = findLicenseBlocksForRefBlock(refBlock.getFeatureName())
+          .stream()
+          .filter(block -> !getBrokenLicenseBlockNames(refBlock.getFeatureName()).contains(block.getFeatureName()))
+          .collect(Collectors.toSet());
+
+      for (var licenseBlock: licenseBlocks) {
+        var childLines = getLinesFromFeature(featureService.getEntityBackedFeature(licenseBlock));
 
         if (childLines.stream().noneMatch(line -> LineNavigationType.GEODESIC.equals(line.getNavigationType()))) {
           continue;
@@ -257,7 +269,7 @@ public class MigrationService {
         var overlaps = grpcClientService.verifyChildGeodesicLinesOverlapParents(parentLines, childLines, true);
 
         var validationMessage = "License block '%s' geodesic lines overlap ref blocks '%s' geodesic lines: %s%n"
-            .formatted(licenseBlocks.getFeatureName(), refBlock.getFeatureName(), overlaps);
+            .formatted(licenseBlock.getFeatureName(), refBlock.getFeatureName(), overlaps);
         if (!overlaps) {
           throw new IllegalStateException(validationMessage);
         }
@@ -453,8 +465,10 @@ public class MigrationService {
   private List<Feature> findLicenseBlocksForRefBlock(String refBlockName) {
     return featureRepository.findAllByType(ShapeType.BLOCK)
         .stream()
-        .filter(licenseBlock -> licenseBlock.getFeatureName().startsWith(refBlockName))
+        .filter(licenseBlock ->
+            licenseBlock.getFeatureName().startsWith(refBlockName)
+                || getBrokenLicenseBlockNames(refBlockName).contains(licenseBlock.getFeatureName())
+        )
         .toList();
-
   }
 }

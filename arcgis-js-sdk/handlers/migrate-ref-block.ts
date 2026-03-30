@@ -263,7 +263,9 @@ function findIntersectionPoint(
             refBlockLine,
             ONE_ARC_SECOND * 30
         );
-        console.log(`second attempt ${intersectionWithLicensePoint.x}, ${intersectionWithLicensePoint.y}`);
+        if (intersectionWithLicensePoint) {
+            console.log(`intersectionWithLicensePoint ${intersectionWithLicensePoint.x}, ${intersectionWithLicensePoint.y}`);
+        }
         return intersectionWithLicensePoint;
     }
 
@@ -280,50 +282,41 @@ function findIntersectionPoint(
     return nearest.coordinate;
 }
 
-function replaceSegment(
+export function replaceSegment(
     refBlockLine: Polyline,
     licenseLine: Polyline,
     startPoint: Point,
     endPoint: Point,
     isLinesGoingSameDirection: boolean
 ): Polyline {
-    const startNearest = proximityOperator.getNearestVertex(refBlockLine, startPoint);
-    const endNearest = proximityOperator.getNearestVertex(refBlockLine, endPoint);
 
-    const startIndex = startNearest.vertexIndex;
-    const endIndex = endNearest.vertexIndex;
+    const [fromIndex, toIndex] = [getIndexOfPointOnLine(startPoint, refBlockLine), getIndexOfPointOnLine(endPoint, refBlockLine)]
+        .sort((a, b) => a - b);
 
-    // Ensure we're replacing in the correct direction on the ref block
-    const [fromIndex, toIndex] = startIndex < endIndex
-        ? [startIndex, endIndex]
-        : [endIndex, startIndex];
+    // Only part of the license line might cover the ref block so we only want to copy that section.
+    const licenseStartIndex = getIndexOfPointOnLine(startPoint, licenseLine);
+    const licenseEndIndex = getIndexOfPointOnLine(endPoint, licenseLine);
+    const [licenseFromIndex, licenseToIndex] = [licenseStartIndex, licenseEndIndex]
+        .sort((a, b) => a - b);
 
-    const path = refBlockLine.paths[0];
-    const newPath: number[][] = [];
-
-    // Add points before the replacement segment
-    for (let i = 0; i < fromIndex; i++) {
-        newPath.push(path[i]);
-    }
-
-    // Add license line points in the correct direction
     const licensePoints = licenseLine.paths[0];
-    if (isLinesGoingSameDirection) {
-        // License line direction matches - insert forward
-        for (const point of licensePoints) {
-            newPath.push(point);
-        }
-    } else {
-        // License line direction is reversed - insert backward
-        for (let i = licensePoints.length - 1; i >= 0; i--) {
-            newPath.push(licensePoints[i]);
-        }
-    }
+    const fromPoint = licenseStartIndex <= licenseEndIndex ? startPoint : endPoint;
+    const toPoint = licenseStartIndex <= licenseEndIndex ? endPoint : startPoint;
 
-    // Add points after the replacement segment
-    for (let i = toIndex + 1; i < path.length; i++) {
-        newPath.push(path[i]);
-    }
+    const licenseSegment = licensePoints.slice(licenseFromIndex, licenseToIndex + 1);
+    const licenseMiddle = isLinesGoingSameDirection
+        ? [[fromPoint.x, fromPoint.y], ...licenseSegment, [toPoint.x, toPoint.y]]
+        : [[toPoint.x, toPoint.y], ...licenseSegment.reverse(), [fromPoint.x, fromPoint.y]];
+
+    const newPath = [
+        ...refBlockLine.paths[0].slice(0, fromIndex),
+        ...licenseMiddle,
+        ...refBlockLine.paths[0].slice(toIndex + 1)
+    ].filter((currentPoint, index, points) => {
+        return index === 0
+            || currentPoint[0] !== points[index - 1][0]
+            || currentPoint[1] !== points[index - 1][1]
+    });
 
     return new Polyline({
         paths: [newPath],
