@@ -6,7 +6,7 @@
     </div>
     <div class="govuk-grid-column-one-half">
       <Map v-model="coordinates" :display-snap-point-layer="false"  :feature-ids="currentFeatureIds" :srs-wkid="srsWkid"/>
-      <split-actions :points="coordinates" :feature-ids="currentFeatureIds" :journey-id="props.journeyId" @clear="clear" @split-success="onSplitSuccess" @split-error="splitError = $event" />
+      <split-actions :points="coordinates" :feature-ids="currentFeatureIds" :journey-id="props.journeyId" :undo-single-line-segment="false" @clear-all-lines="clear" @split-success="onSplitSuccess" @split-error="splitError = $event" />
     </div>
   </div>
 </template>

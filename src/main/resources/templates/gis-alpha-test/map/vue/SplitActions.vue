@@ -1,8 +1,11 @@
 <template>
-  <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4" @click="$emit('clear')">Clear lines</button>
-  <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4 govuk-!-margin-left-2" @click="split" :disabled="splitDisabled">Split</button>
-  <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4 govuk-!-margin-left-2" @click="undo" :disabled="undoDisabled">Undo</button>
-  <button class="govuk-button govuk-button--secondary govuk-!-margin-top-4 govuk-!-margin-left-2" @click="redo" :disabled="redoDisabled">Redo</button>
+  <div class="govuk-button-group govuk-!-margin-top-4">
+    <button class="govuk-button" @click="split" :disabled="splitDisabled">Split</button>
+    <button v-if="!undoSingleLineSegment" class="govuk-button govuk-button--secondary" @click="$emit('clear-all-lines')">Clear points</button>
+    <button v-if="undoSingleLineSegment" class="govuk-button govuk-button--secondary" @click="$emit('undo-last-line')">Undo line segment</button>
+    <button class="govuk-button govuk-button--secondary" @click="undo" :disabled="undoDisabled">Undo change</button>
+    <button class="govuk-button govuk-button--secondary" @click="redo" :disabled="redoDisabled">Redo change</button>
+  </div>
 </template>
 
 <script setup>
@@ -26,6 +29,10 @@ const props = defineProps({
   journeyId: {
     type: String,
     required: false
+  },
+  undoSingleLineSegment: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -33,7 +40,7 @@ onMounted(() => {
   journeyId.value = props.journeyId;
 })
 
-const emit = defineEmits(['clear', 'split-success', 'split-error']);
+const emit = defineEmits(['undo-last-line', "clear-all-lines", 'split-success', 'split-error']);
 
 async function split() {
   const validPoints = props.points.filter(p => p.originalSrsLongitude !== undefined && p.originalSrsLatitude !== undefined);
