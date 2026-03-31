@@ -12,15 +12,30 @@ import {computed} from "vue";
 
 const props = defineProps({
   featureIds: String,
-  olMap: Object
+  olMap: Object,
+  fillColor: {
+    type: Array,
+    required: false,
+    default: [255, 221 ,0] //yellow
+  },
+  strokeColor:  {
+    type: Array,
+    required: false,
+    default: [0, 0, 0, 1] //black
+  },
 })
 const esriJson = new EsriJSON();
 const featuresUrl = computed(() => `/map/esrijson?featureIds=${encodeURIComponent(props.featureIds)}`);
 
 function featureStyle(feature) {
   return new Style({
-    stroke: new Stroke({color: 'rgba(0, 100, 210, 0.8)', width: 2}),
-    fill: new Fill({color: 'rgba(0, 100, 210, 0.15)'}),
+    stroke: new Stroke({
+      color: [...props.strokeColor, 1],
+      width: 2
+    }),
+    fill: new Fill({
+      color: [...props.fillColor, 0.50],
+    }),
     text: new Text({
       text: feature.get('featureName') || '',
       font: '14px sans-serif',

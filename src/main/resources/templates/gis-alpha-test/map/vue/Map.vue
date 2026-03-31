@@ -7,8 +7,8 @@
     <nsta-quadrant-layer :ol-map="mapRef"/>
     <nsta-quadrant-block-layer :ol-map="mapRef"/>
     <snap-points-layer v-if="displaySnapPointLayer" :ol-map="mapRef" v-model:coordinates="modelValue" :srsWkid="props.srsWkid"/>
-    <split-line-layer :coordinates="modelValue"/>
     <feature-layer :featureIds="featureIds" :ol-map="mapRef"/>
+    <split-line-layer :coordinates="modelValue"/>
   </ol-map>
 </template>
 
