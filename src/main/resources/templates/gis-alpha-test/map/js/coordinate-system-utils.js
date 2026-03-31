@@ -48,3 +48,67 @@ export function ed50ToWgs84(longitude, latitude) {
 export function bngToWgs84(easting, northing) {
   return proj4('EPSG:27700', 'EPSG:4326', [easting, northing]);
 }
+
+/**
+ * Converts Decimal Degrees to Degrees, Minutes, Seconds (DMS)
+ * @param {Number|String} dd - The decimal degree coordinate
+ * @param {Boolean} isLat - True if the coordinate is Latitude (Y axis)
+ * @returns {Object} { d: Number, m: Number, s: Number, hemi: String }
+ */
+export function toDMS(dd, isLat) {
+  const val = parseFloat(dd) || 0;
+  const absVal = Math.abs(val);
+
+  let degrees = Math.trunc(absVal);
+  let minutes = Math.trunc((absVal - degrees) * 60);
+  let seconds = Number((((absVal - degrees) * 60 - minutes) * 60).toFixed(3));
+
+  let hemi = '';
+  if (isLat) {
+    hemi = val < 0 || Object.is(val, -0) ? 'S' : 'N';
+  } else {
+    hemi = val < 0 || Object.is(val, -0) ? 'W' : 'E';
+  }
+
+  if (seconds === 60) {
+    //59.9996 will round to 60
+    seconds = 0;
+    minutes += 1;
+  }
+
+  if (minutes === 60) {
+    minutes = 0;
+    degrees += 1;
+  }
+
+  return { d: degrees, m: minutes, s: seconds, hemi };
+}
+
+/**
+ * @param {Object} dms - { d: Number, m: Number, s: Number, hemi: String }
+ * @returns {String} DMS formatted string
+ */
+export function dmsToString(dms) {
+  return `${dms.d}° ${dms.m}' ${dms.s}" ${dms.hemi}`;
+}
+
+/**
+ * Converts Degrees, Minutes, Seconds (DMS) back to Decimal Degrees
+ * @param {Number|String} d - Degrees
+ * @param {Number|String} m - Minutes
+ * @param {Number|String} s - Seconds
+ * @param {String} hemi - Hemisphere ('N', 'S', 'E', 'W')
+ * @returns {Number} Decimal degrees
+ */
+export function toDecimalDegrees(d, m, s, hemi) {
+  const parsedD = Math.abs(parseFloat(d)) || 0;
+  const parsedM = Math.abs(parseFloat(m)) || 0;
+  const parsedS = Math.abs(parseFloat(s)) || 0;
+
+  let dd = parsedD + (parsedM / 60) + (parsedS / 3600);
+
+  if (hemi === 'S' || hemi === 'W') {
+    dd = -dd;
+  }
+  return dd;
+}

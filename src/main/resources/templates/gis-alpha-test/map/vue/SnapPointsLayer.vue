@@ -59,7 +59,16 @@
 import {ref, watch} from "vue";
 import {debounce} from "../../../../js/debounce";
 import {getSnapPoints} from "../js/api/snap-points.api";
-import {bngToWgs84, bngWkid, ed50ToWgs84, ed50Wkid, wgs84ToBng, wgs84ToEd50} from "../js/coordinate-system-utils";
+import {
+  bngToWgs84,
+  bngWkid,
+  dmsToString,
+  ed50ToWgs84,
+  ed50Wkid,
+  toDMS,
+  wgs84ToBng,
+  wgs84ToEd50
+} from "../js/coordinate-system-utils";
 import {areGridPointsAligned, coordToGridIndex, createGridPointId, gridIndexToCoord} from "../js/grid-utils";
 
 const snapPoints = ref([]);
@@ -181,9 +190,11 @@ const regeneratePointsOnBrowser = () => {
 
       let displayName;
       if (props.srsWkid === ed50Wkid) {
-        displayName = `${toDegreesMinutesSeconds(originalSrsLat, true)} ${toDegreesMinutesSeconds(originalSrsLon, false)}`;
+        const dmsLat = toDMS(originalSrsLat, true);
+        const dmsLon = toDMS(originalSrsLon, false);
+        displayName = `${dmsToString(dmsLat)} ${dmsToString(dmsLon)}`;
       } else if (props.srsWkid === bngWkid) {
-        displayName = `${originalSrsLon}E ${originalSrsLat}N`;
+        displayName = `${originalSrsLat}N ${originalSrsLon}E`; //not correct for BNG, but won't fix on alpha
       }
 
       pointsArray.push({
@@ -278,15 +289,5 @@ const handleMapClick = () => {
 const handleMouseLeave = () => {
   hoveredPoint.value = null;
   previewLine.value = null;
-};
-
-const toDegreesMinutesSeconds = (decimal, isLat) => {
-  const absolute = Math.abs(decimal);
-  const degrees = Math.floor(absolute);
-  const minutesDecimal = (absolute - degrees) * 60;
-  const minutes = Math.floor(minutesDecimal);
-  const seconds = ((minutesDecimal - minutes) * 60).toFixed(1);
-  const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : (decimal >= 0 ? 'E' : 'W');
-  return `${degrees}°${String(minutes).padStart(2, '0')}'${String(seconds).padStart(4, '0')}"${dir}`;
 };
 </script>

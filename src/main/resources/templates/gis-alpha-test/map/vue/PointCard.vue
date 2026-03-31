@@ -6,7 +6,7 @@
         <li class="govuk-summary-card__action">
           <button class="fds-link-button" type="button" @click="$emit('add-before')">Add before</button>
         </li>
-        <li class="govuk-summary-card__action">
+        <li class="govuk-summary-card__action govuk-!-padding-left-2">
           <button class="fds-link-button" type="button" @click="$emit('add-after')">Add after</button>
         </li>
         <li class="govuk-summary-card__action">
@@ -15,21 +15,33 @@
       </ul>
     </div>
     <div class="govuk-summary-card__content">
-      <div class="coordinate-inputs">
-        <div class="govuk-form-group govuk-!-margin-bottom-0">
-          <label class="govuk-label" :for="'longitude-' + index">Easting</label>
-          <input class="govuk-input govuk-input--width-5" :id="'longitude-' + index" :value="longitudeOriginalSrs" @input="$emit('update:longitude', $event.target.value)"/>
-        </div>
-        <div class="govuk-form-group govuk-!-margin-bottom-0">
-          <label class="govuk-label" :for="'latitude-' + index">Northing</label>
-          <input class="govuk-input govuk-input--width-5" :id="'latitude-' + index" :value="latitudeOriginalSrs" @input="$emit('update:latitude', $event.target.value)"/>
-        </div>
-      </div>
+
+      <CoordinateGridInput
+          v-if="srsWkid === bngWkid"
+          :index="index"
+          :longitude="longitudeOriginalSrs"
+          :latitude="latitudeOriginalSrs"
+          @update:longitude="$emit('update:longitude', $event)"
+          @update:latitude="$emit('update:latitude', $event)"
+      />
+
+      <CoordinateInputDms
+          v-else-if="srsWkid === ed50Wkid"
+          :index="index"
+          :longitude="longitudeOriginalSrs"
+          :latitude="latitudeOriginalSrs"
+          @update:longitude="$emit('update:longitude', $event)"
+          @update:latitude="$emit('update:latitude', $event)"
+      />
+
     </div>
   </div>
 </template>
 
 <script setup>
+import {bngWkid, ed50Wkid} from "../js/coordinate-system-utils";
+import CoordinateGridInput from './CoordinateGridInput.vue';
+import CoordinateInputDms from './CoordinateInputDms.vue';
 
 defineProps({
   index: {
@@ -43,33 +55,14 @@ defineProps({
   latitudeOriginalSrs: {
     type: [String, Number],
     default: 0
+  },
+  srsWkid: {
+    type:
+    Number,
+    required: true
   }
 });
 
 defineEmits(['update:longitude', 'update:latitude', 'add-before', 'add-after', 'remove']);
 
 </script>
-
-<style scoped>
-.coordinate-inputs {
-  display: flex;
-  gap: 20px;
-}
-
-.govuk-summary-card__action {
-  display: inline-block;
-  padding-left: 0;
-}
-
-.govuk-summary-card__action:not(:last-child):after {
-  content: "|";
-  margin: 0 5px;
-  color: #b1b4b6;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.govuk-summary-card__actions {
-  padding-left: 0;
-}
-</style>

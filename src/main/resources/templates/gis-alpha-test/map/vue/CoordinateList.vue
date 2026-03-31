@@ -6,6 +6,7 @@
       :index="index"
       :longitudeOriginalSrs="point.originalSrsLongitude"
       :latitudeOriginalSrs="point.originalSrsLatitude"
+      :srsWkid="props.srsWkid"
       @update:longitude="updateLongitude(index, $event)"
       @update:latitude="updateLatitude(index, $event)"
       @add-before="addBefore(index)"
