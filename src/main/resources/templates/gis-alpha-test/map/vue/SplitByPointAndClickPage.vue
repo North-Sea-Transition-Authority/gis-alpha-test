@@ -1,7 +1,7 @@
 <template>
   <single-error :errorMessage="splitError"/>
   <h1 class="govuk-heading-xl">Feature Map</h1>
-  <link :link-url="splitByCoordinateEntryUrl" link-text="Switch to split by coordinate entry" link-class="fds-link-button"/>
+  <Link :link-url="splitByCoordinateEntryUrl" link-text="Switch to split by coordinate entry" link-class="fds-link-button"/>
   <Map v-model="points" :feature-ids="currentFeatureIds" :srs-wkid="srsWkid"/>
   <split-actions :points="points" :feature-ids="currentFeatureIds" :journey-id="props.journeyId" @undo-last-line="undoLastPoint" @split-success="onSplitSuccess" @split-error="splitError = $event" />
 </template>

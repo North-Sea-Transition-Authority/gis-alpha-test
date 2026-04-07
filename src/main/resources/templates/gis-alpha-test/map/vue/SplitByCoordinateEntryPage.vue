@@ -1,7 +1,7 @@
 <template>
   <single-error :errorMessage="splitError"/>
   <h1 class="govuk-heading-xl">Feature Map</h1>
-  <link :link-url="splitByPointAndClickUrl" link-text="Switch to split by point and click" link-class="fds-link-button"/>
+  <Link :link-url="splitByPointAndClickUrl" link-text="Switch to split by point and click" link-class="fds-link-button"/>
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-one-half">
       <coordinate-list v-model="coordinates" :srs-wkid="srsWkid"/>
