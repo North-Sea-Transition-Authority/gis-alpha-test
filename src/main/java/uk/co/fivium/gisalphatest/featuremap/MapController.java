@@ -57,9 +57,7 @@ class MapController {
         .addObject("featureIds", idsAsString)
         .addObject("srsWkid", feature.getSrs())
         .addObject("journeyId", getJourneyId(feature))
-        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()))
-        .addObject("coordinateEntryMapUrl",
-            ReverseRouter.route(on(MapController.class).getFeatureMapWithCoordinateEntry(featureIds)));
+        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
   }
 
   @GetMapping("/split/coordinate-entry")
@@ -79,9 +77,7 @@ class MapController {
         .addObject("featureIds", idsAsString)
         .addObject("srsWkid", feature.getSrs())
         .addObject("journeyId", getJourneyId(feature))
-        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()))
-        .addObject("pointAndClickMapUrl",
-            ReverseRouter.route(on(MapController.class).getFeatureMap(featureIds)));
+        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
   }
 
   @GetMapping("/esrijson")

@@ -1,5 +1,7 @@
 <template>
-  <notification-banner :message="splitError" />
+  <single-error :errorMessage="splitError"/>
+  <h1 class="govuk-heading-xl">Feature Map</h1>
+  <link :link-url="splitByPointAndClickUrl" link-text="Switch to split by point and click" link-class="fds-link-button"/>
   <div class="govuk-grid-row">
     <div class="govuk-grid-column-one-half">
       <coordinate-list v-model="coordinates" :srs-wkid="srsWkid"/>
@@ -13,18 +15,21 @@
 
 <script setup>
 
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import CoordinateList from "./CoordinateList.vue";
 import Map from "./Map.vue";
 import SplitActions from "./SplitActions.vue";
-import NotificationBanner from "./NotificationBanner.vue";
+import SingleError from "./components/SingleError.vue";
 import {bngToWgs84, bngWkid, ed50ToWgs84, ed50Wkid} from "../js/coordinate-system-utils";
+import Link from "./components/Link.vue";
 
 const props = defineProps({
   featureIds: String,
   srsWkid: Number,
   journeyId: String,
 });
+
+const splitByPointAndClickUrl = computed(() => `/map/split/point-and-click?featureIds=${encodeURIComponent(currentFeatureIds.value)}`);
 
 function createInitialCoordinate() {
   let wgs84Lon, wgs84Lat;

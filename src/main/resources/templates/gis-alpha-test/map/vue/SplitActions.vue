@@ -45,6 +45,7 @@ const emit = defineEmits(['undo-last-line', "clear-all-lines", 'split-success', 
 async function split() {
   const validPoints = props.points.filter(p => p.originalSrsLongitude !== undefined && p.originalSrsLatitude !== undefined);
   if (validPoints.length < 2) {
+    emit('split-error', 'Enter a line with at least two points.');
     return;
   }
 
