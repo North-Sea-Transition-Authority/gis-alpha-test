@@ -1,6 +1,5 @@
 package uk.co.fivium.gisalphatest.transformations;
 
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -11,11 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.co.fivium.gisalphatest.feature.Feature;
-import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.grpc.GrpcClientService;
 import uk.co.fivium.gisalphatest.migration.Srs;
-import uk.co.fivium.gisalphatest.transformations.command.CommandJourney;
-import uk.co.fivium.gisalphatest.transformations.command.CommandJourneyRepository;
+import uk.co.fivium.gisalphatest.transformations.command.CommandJourneyService;
 import uk.co.fivium.gisalphatest.transformations.command.CommandResponse;
 import uk.co.fivium.gisalphatest.transformations.command.TransformationCommandReceiver;
 
@@ -26,24 +23,22 @@ public class SplitRestController {
   private static final Logger LOGGER = LoggerFactory.getLogger(SplitRestController.class);
 
   private final GrpcClientService grpcClientService;
-  private final FeatureRepository featureRepository;
   private final TransformationCommandReceiver transformationCommandReceiver;
-  private final CommandJourneyRepository commandJourneyRepository;
+  private final CommandJourneyService commandJourneyService;
 
   public SplitRestController(GrpcClientService grpcClientService,
-                             FeatureRepository featureRepository,
                              TransformationCommandReceiver transformationCommandReceiver,
-                             CommandJourneyRepository commandJourneyRepository) {
+                             CommandJourneyService commandJourneyService) {
     this.grpcClientService = grpcClientService;
-    this.featureRepository = featureRepository;
     this.transformationCommandReceiver = transformationCommandReceiver;
-    this.commandJourneyRepository = commandJourneyRepository;
+    this.commandJourneyService = commandJourneyService;
   }
 
   @PostMapping("/execute")
   public CommandResponse splitFromMap(@RequestBody SplitFromMapRequestBody splitFromMapRequestBody) {
     LOGGER.info("Received request for '{}'", splitFromMapRequestBody);
-    List<Feature> features = featureRepository.findAllById(splitFromMapRequestBody.featureIds());
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(splitFromMapRequestBody.commandJourneyId());
+    var features = commandJourneyService.getActiveFeatures(commandJourney);
     Srs srs = Srs.fromWkid(features.getFirst().getSrs());
     String cutterLine = grpcClientService.convertPointsToPolyline(splitFromMapRequestBody.originalSrsCoordinates(), srs);
     List<Feature> outputFeatures = transformationCommandReceiver.executeSplit(features, cutterLine);
@@ -60,7 +55,7 @@ public class SplitRestController {
 
   @PostMapping("/{journeyId}/undo")
   public CommandResponse undo(@PathVariable UUID journeyId) {
-    var journey = getCommandJourneyOrThrow(journeyId);
+    var journey = commandJourneyService.getCommandJourneyOrThrow(journeyId);
     List<Feature> outputFeatures = transformationCommandReceiver.undo(journey);
 
     return new CommandResponse(
@@ -71,17 +66,12 @@ public class SplitRestController {
 
   @PostMapping("/{journeyId}/redo")
   public CommandResponse redo(@PathVariable UUID journeyId) {
-    var journey = getCommandJourneyOrThrow(journeyId);
+    var journey = commandJourneyService.getCommandJourneyOrThrow(journeyId);
     List<Feature> outputFeatures = transformationCommandReceiver.redo(journey);
 
     return new CommandResponse(
         journeyId.toString(),
         outputFeatures.stream().map(feature -> feature.getId().toString()).toList()
     );
-  }
-
-  private CommandJourney getCommandJourneyOrThrow(UUID journeyId) {
-    return commandJourneyRepository.findById(journeyId)
-        .orElseThrow(EntityNotFoundException::new);
   }
 }

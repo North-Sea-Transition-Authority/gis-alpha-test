@@ -9,10 +9,9 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import {ref} from 'vue';
 import {redoSplit, splitRequest, undoSplit} from "../js/api/split.api";
 
-const journeyId = ref(null);
 const splitDisabled = ref(false);
 const undoDisabled = ref(false);
 const redoDisabled = ref(false);
@@ -22,22 +21,14 @@ const props = defineProps({
     type: Array,
     required: true
   },
-  featureIds: {
-    type: String,
-    required: true
-  },
   journeyId: {
     type: String,
-    required: false
+    required: true
   },
   undoSingleLineSegment: {
     type: Boolean,
     default: true
   }
-})
-
-onMounted(() => {
-  journeyId.value = props.journeyId;
 })
 
 const emit = defineEmits(['undo-last-line', "clear-all-lines", 'split-success', 'split-error']);
@@ -51,10 +42,9 @@ async function split() {
 
   splitDisabled.value = true;
   try {
-    const splitResponse = await splitRequest(validPoints, props.featureIds);
-    if (splitResponse.outputFeatureIds.length > 0) {
-      journeyId.value = splitResponse.commandJourneyId;
-      emit('split-success', splitResponse.outputFeatureIds.join(","));
+    const splitResponse = await splitRequest(validPoints, props.journeyId);
+    if (splitResponse.outputFeatureIds.length > 0)  {
+      emit('split-success');
     } else {
       emit('split-error', 'No split took place. Make sure your line crosses the feature boundary.');
     }
@@ -66,20 +56,13 @@ async function split() {
 }
 
 async function undo() {
-  if (!journeyId.value) {
-    console.log("No journey ID");
-    emit('split-error', 'Nothing to undo');
-    return;
-  }
-  console.log('journeyId: ', journeyId.value);
   undoDisabled.value = true;
   try {
-    const response = await undoSplit(journeyId.value);
+    const response = await undoSplit(props.journeyId);
     console.log(response);
     const newFeatureIds = response.outputFeatureIds;
     if (newFeatureIds.length > 0) {
-      emit('split-success', newFeatureIds.join(","));
-      journeyId.value = response.commandJourneyId;
+      emit('split-success');
     } else {
       emit('split-error', 'Nothing to undo');
     }
@@ -91,20 +74,13 @@ async function undo() {
 }
 
 async function redo() {
-  if (!journeyId.value) {
-    console.log("No journey ID");
-    emit('split-error', 'Nothing to redo.');
-    return;
-  }
-  console.log('journeyId: ', journeyId.value);
   redoDisabled.value = true;
   try {
-    const response = await redoSplit(journeyId.value);
+    const response = await redoSplit(props.journeyId);
     console.log(response);
     const newFeatureIds = response.outputFeatureIds;
     if (newFeatureIds.length > 0) {
-      emit('split-success', newFeatureIds.join(","));
-      journeyId.value = response.commandJourneyId;
+      emit('split-success');
     } else {
       emit('split-error', 'Nothing to redo.');
     }

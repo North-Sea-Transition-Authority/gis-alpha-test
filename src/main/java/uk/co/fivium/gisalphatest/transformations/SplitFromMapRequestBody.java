@@ -5,5 +5,5 @@ import java.util.List;
 import java.util.UUID;
 
 public record SplitFromMapRequestBody(List<List<List<BigDecimal>>> originalSrsCoordinates,
-                                      List<UUID> featureIds) {
+                                      UUID commandJourneyId) {
 }

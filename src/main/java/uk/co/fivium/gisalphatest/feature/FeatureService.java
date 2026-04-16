@@ -6,10 +6,14 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.co.fivium.gisalphatest.migration.Srs;
 import uk.co.fivium.gisalphatest.oracle.ShapeType;
+import uk.co.fivium.gisalphatest.transformations.command.CommandJourney;
+import uk.co.fivium.gisalphatest.transformations.command.CommandJourneyRepository;
+import uk.co.fivium.gisalphatest.transformations.command.TransformationCommandRepository;
 import uk.co.fivium.gisalphatest.util.StreamUtil;
 
 @Service
@@ -20,19 +24,24 @@ public class FeatureService {
   private final LineRepository lineRepository;
   private final EntityManager entityManager;
   private final ShapesConfigProperties shapesConfigProperties;
+  private final CommandJourneyRepository commandJourneyRepository;
+  private final TransformationCommandRepository transformationCommandRepository;
 
   FeatureService(
       FeatureRepository featureRepository,
       PolygonRepository polygonRepository,
       LineRepository lineRepository,
       EntityManager entityManager,
-      ShapesConfigProperties shapesConfigProperties
-  ) {
+      ShapesConfigProperties shapesConfigProperties,
+      CommandJourneyRepository commandJourneyRepository,
+      TransformationCommandRepository transformationCommandRepository) {
     this.featureRepository = featureRepository;
     this.polygonRepository = polygonRepository;
     this.lineRepository = lineRepository;
     this.entityManager = entityManager;
     this.shapesConfigProperties = shapesConfigProperties;
+    this.commandJourneyRepository = commandJourneyRepository;
+    this.transformationCommandRepository = transformationCommandRepository;
   }
 
   public EntityBackedFeature getEntityBackedFeature(Integer shapeSidId, String testCase) {
@@ -69,6 +78,8 @@ public class FeatureService {
     var features = featureRepository.findAll();
     featureRepository.deleteAll(features.stream().filter(f -> f.getParentFeatureId() != null).toList());
     featureRepository.deleteAll(features.stream().filter(f -> f.getParentFeatureId() == null).toList());
+    transformationCommandRepository.deleteAll();
+    commandJourneyRepository.deleteAll();
     entityManager.flush();
   }
 
@@ -110,6 +121,8 @@ public class FeatureService {
     feature.setType(ShapeType.BLOCK);
     feature.setSrs(Srs.ED50.getWkid());
     feature.setTestCase(testCase);
+    var commandJourney = commandJourneyRepository.save(new CommandJourney());
+    feature.setCommandJourney(commandJourney);
     return featureRepository.save(feature);
   }
 
@@ -149,5 +162,9 @@ public class FeatureService {
                 feature -> "%s %s".formatted(feature.getFeatureName(), feature.getType())
             )
         );
+  }
+
+  public List<Feature> getFeatures(List<UUID> featureIds) {
+    return featureRepository.findAllById(featureIds);
   }
 }

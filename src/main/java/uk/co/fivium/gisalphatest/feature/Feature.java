@@ -10,8 +10,9 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator;
-import uk.co.fivium.gisalphatest.transformations.command.TransformationCommand;
 import uk.co.fivium.gisalphatest.oracle.ShapeType;
+import uk.co.fivium.gisalphatest.transformations.command.CommandJourney;
+import uk.co.fivium.gisalphatest.transformations.command.TransformationCommand;
 
 @Entity
 @Table(name = "features")
@@ -43,6 +44,10 @@ public class Feature {
   @ManyToOne
   @JoinColumn(name = "created_by_command_id")
   private TransformationCommand createdByCommand;
+
+  @ManyToOne
+  @JoinColumn(name = "command_journey_id")
+  private CommandJourney commandJourney;
 
   public UUID getId() {
     return id;
@@ -126,5 +131,13 @@ public class Feature {
 
   public void setCreatedByCommand(TransformationCommand createdByCommand) {
     this.createdByCommand = createdByCommand;
+  }
+
+  public CommandJourney getCommandJourney() {
+    return commandJourney;
+  }
+
+  public void setCommandJourney(CommandJourney commandJourney) {
+    this.commandJourney = commandJourney;
   }
 }

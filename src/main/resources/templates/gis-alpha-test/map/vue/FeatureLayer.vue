@@ -1,17 +1,28 @@
 <template>
   <ol-vector-layer :style="featureStyle" :declutter="true">
-    <ol-source-vector :url="featuresUrl" :format="esriJson" @featuresloadend="fitToExtent">
-    </ol-source-vector>
+    <ol-source-vector
+      ref="vectorSourceRef"
+      :url="featuresUrl"
+      :format="esriJson"
+      @featuresloadend="fitToExtent"
+  />
   </ol-vector-layer>
 </template>
 
 <script setup>
 import {Fill, Stroke, Style, Text} from "ol/style";
 import {EsriJSON} from "ol/format";
-import {computed} from "vue";
+import {computed, nextTick, ref, watch} from "vue";
 
 const props = defineProps({
-  featureIds: String,
+  journeyId: {
+    type: String,
+    required: true
+  },
+  refreshCounter: {
+    type: Number,
+    required: true
+  },
   olMap: Object,
   fillColor: {
     type: Array,
@@ -25,7 +36,17 @@ const props = defineProps({
   },
 })
 const esriJson = new EsriJSON();
-const featuresUrl = computed(() => `/map/esrijson?featureIds=${encodeURIComponent(props.featureIds)}`);
+const vectorSourceRef = ref(null);
+const featuresUrl = computed(() => `/map/esrijson/${props.journeyId}`);
+
+watch(() => props.refreshCounter, async () => {
+  await nextTick();
+  const source = vectorSourceRef.value?.source;
+  if (source?.refresh) {
+    source.refresh();
+  }
+});
+
 
 function featureStyle(feature) {
   return new Style({

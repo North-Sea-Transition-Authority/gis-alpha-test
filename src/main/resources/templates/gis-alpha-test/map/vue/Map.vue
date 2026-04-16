@@ -7,7 +7,7 @@
     <nsta-quadrant-layer :ol-map="mapRef"/>
     <nsta-quadrant-block-layer :ol-map="mapRef"/>
     <snap-points-layer v-if="displaySnapPointLayer" :ol-map="mapRef" v-model:coordinates="modelValue" :srsWkid="props.srsWkid"/>
-    <feature-layer :featureIds="featureIds" :ol-map="mapRef"/>
+    <feature-layer :journey-id="journeyId" :refresh-counter="refreshCounter" :ol-map="mapRef"/>
     <split-line-layer :coordinates="modelValue"/>
   </ol-map>
 </template>
@@ -27,8 +27,12 @@ const modelValue = defineModel({
 })
 
 const props = defineProps({
-  featureIds: {
+  journeyId: {
     type: String,
+    required: true
+  },
+  refreshCounter: {
+    type: Number,
     required: true
   },
   displaySnapPointLayer: {

@@ -4,87 +4,65 @@ import static org.springframework.web.servlet.mvc.method.annotation.MvcUriCompon
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 import uk.co.fivium.gisalphatest.feature.Feature;
-import uk.co.fivium.gisalphatest.feature.FeatureRepository;
 import uk.co.fivium.gisalphatest.feature.PolygonService;
-import uk.co.fivium.gisalphatest.migration.Srs;
 import uk.co.fivium.gisalphatest.mvc.ReverseRouter;
+import uk.co.fivium.gisalphatest.transformations.command.CommandJourneyService;
 
 @Controller
 @RequestMapping("/map")
 class MapController {
 
-  private final FeatureRepository featureRepository;
   private final PolygonService polygonService;
   private final ObjectMapper objectMapper;
+  private final CommandJourneyService commandJourneyService;
 
   MapController(
-      FeatureRepository featureRepository,
       PolygonService polygonService,
-      ObjectMapper objectMapper) {
-    this.featureRepository = featureRepository;
+      ObjectMapper objectMapper,
+      CommandJourneyService commandJourneyService) {
     this.polygonService = polygonService;
     this.objectMapper = objectMapper;
+    this.commandJourneyService = commandJourneyService;
   }
 
-  @GetMapping("/split/point-and-click")
-  public ModelAndView getFeatureMap(@RequestParam(required = false) List<UUID> featureIds) {
-    if (CollectionUtils.isEmpty(featureIds)) {
-      featureIds = featureRepository.findAllByActive(true).stream()
-          .filter(feature -> Srs.ED50.getWkid().equals(feature.getSrs()))
-          .map(Feature::getId)
-          .toList();
-    }
-
-    List<String> idsAsString = featureIds.stream()
-        .map(UUID::toString)
-        .toList();
-    var feature = getFeatureOrThrow(featureIds.getFirst());
+  @GetMapping("/split/point-and-click/{commandJourneyId}")
+  public ModelAndView getFeatureMap(@PathVariable UUID commandJourneyId) {
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var feature = commandJourneyService.getActiveFeatures(commandJourney).getFirst();
     return new ModelAndView("gis-alpha-test/map/splitByPointAndClickPage")
-        .addObject("featureIds", idsAsString)
+        .addObject("journeyId", commandJourneyId)
         .addObject("srsWkid", feature.getSrs())
-        .addObject("journeyId", getJourneyId(feature))
         .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
   }
 
-  @GetMapping("/split/coordinate-entry")
-  public ModelAndView getFeatureMapWithCoordinateEntry(@RequestParam(required = false) List<UUID> featureIds) {
-    if (CollectionUtils.isEmpty(featureIds)) {
-      featureIds = featureRepository.findAllByActive(true).stream()
-          .filter(feature -> Srs.ED50.getWkid().equals(feature.getSrs()))
-          .map(Feature::getId)
-          .toList();
-    }
-
-    List<String> idsAsString = featureIds.stream()
-        .map(UUID::toString)
-        .toList();
-    var feature = getFeatureOrThrow(featureIds.getFirst());
+  @GetMapping("/split/coordinate-entry/{commandJourneyId}")
+  public ModelAndView getFeatureMapWithCoordinateEntry(@PathVariable UUID commandJourneyId) {
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var feature = commandJourneyService.getActiveFeatures(commandJourney).getFirst();
     return new ModelAndView("gis-alpha-test/map/splitByCoordinateEntryPage")
-        .addObject("featureIds", idsAsString)
+        .addObject("journeyId", commandJourneyId)
         .addObject("srsWkid", feature.getSrs())
-        .addObject("journeyId", getJourneyId(feature))
         .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()))
         .addObject("userTestingExtentText", getUserTestingShapeExtentText(feature));
   }
 
-  @GetMapping("/esrijson")
+  @GetMapping("/esrijson/{commandJourneyId}")
   @ResponseBody
-  public Map<String, Object> getFeaturesEsriJson(@RequestParam List<UUID> featureIds) throws JsonProcessingException {
-    var features = featureRepository.findAllById(featureIds);
+  public Map<String, Object> getFeaturesEsriJson(@PathVariable UUID commandJourneyId) throws JsonProcessingException {
+    var commandJourney = commandJourneyService.getCommandJourneyOrThrow(commandJourneyId);
+    var features = commandJourneyService.getActiveFeatures(commandJourney);
 
     List<Map<String, Object>> geoJsonFeatures = new ArrayList<>();
 
@@ -110,18 +88,6 @@ class MapController {
     featureSet.put("features", geoJsonFeatures);
 
     return featureSet;
-  }
-
-  private Feature getFeatureOrThrow(UUID featureId) {
-    return featureRepository.findById(featureId)
-        .orElseThrow(EntityNotFoundException::new);
-  }
-
-  private String getJourneyId(Feature feature) {
-    String journeyId = feature.getCreatedByCommand() == null
-        ? null
-        : feature.getCreatedByCommand().getCommandJourney().getId().toString();
-    return journeyId;
   }
 
   private String getUserTestingShapeExtentText(Feature feature) {

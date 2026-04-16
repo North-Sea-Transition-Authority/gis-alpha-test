@@ -10,8 +10,8 @@
       <coordinate-list v-model="coordinates" :srs-wkid="srsWkid"/>
     </div>
     <div class="govuk-grid-column-one-half">
-      <Map v-model="coordinates" :display-snap-point-layer="false"  :feature-ids="currentFeatureIds" :srs-wkid="srsWkid"/>
-      <split-actions :points="coordinates" :feature-ids="currentFeatureIds" :journey-id="props.journeyId" :undo-single-line-segment="false" @clear-all-lines="clear" @split-success="onSplitSuccess" @split-error="splitError = $event" />
+      <Map v-model="coordinates" :display-snap-point-layer="false" :journey-id="journeyId" :refresh-counter="refreshCounter" :srs-wkid="srsWkid"/>
+      <split-actions :points="coordinates" :journey-id="journeyId" :undo-single-line-segment="false" @clear-all-lines="clear" @split-success="onSplitSuccess" @split-error="splitError = $event" />
     </div>
   </div>
 </template>
@@ -28,16 +28,16 @@ import Link from "./components/Link.vue";
 import NotificationBanner from "./components/NotificationBanner.vue";
 
 const props = defineProps({
-  featureIds: String,
-  srsWkid: Number,
   journeyId: String,
+  srsWkid: Number,
   userTestingExtentText: {
     type: String,
     required: false
   }
 });
 
-const splitByPointAndClickUrl = computed(() => `/map/split/point-and-click?featureIds=${encodeURIComponent(currentFeatureIds.value)}`);
+const refreshCounter = ref(0);
+const splitByPointAndClickUrl = computed(() => `/map/split/point-and-click/${props.journeyId}`);
 
 function createInitialCoordinate() {
   let wgs84Lon, wgs84Lat;
@@ -56,16 +56,15 @@ function createInitialCoordinate() {
 const initialCoordinate = createInitialCoordinate();
 
 const coordinates = ref([initialCoordinate]);
-const currentFeatureIds = ref(props.featureIds);
 const splitError = ref(null);
 
 function clear() {
   coordinates.value = [{ ...initialCoordinate }];
 }
 
-function onSplitSuccess(newFeatureIds) {
+function onSplitSuccess() {
   splitError.value = null;
-  currentFeatureIds.value = newFeatureIds;
+  refreshCounter.value++;
   clear();
 }
 

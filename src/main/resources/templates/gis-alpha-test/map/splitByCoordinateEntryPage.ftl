@@ -9,9 +9,8 @@ backLinkUrl=backUrl
 >
   <div
     data-module='split-by-coordinate-entry-page'
-    data-feature-ids="${featureIds?join(",")}"
+    data-journey-id="${journeyId}"
     data-srs-wkid="${srsWkid?c}"
-    <#if journeyId??>data-journey-id="${journeyId}"</#if>
     <#if userTestingExtentText??>data-user-testing-extent-text="${userTestingExtentText}"</#if>
   >
   </div>

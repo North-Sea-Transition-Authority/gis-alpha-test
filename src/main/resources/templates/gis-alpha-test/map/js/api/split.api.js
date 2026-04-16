@@ -1,4 +1,4 @@
-export async function splitRequest(points, featureIds) {
+export async function splitRequest(points, commandJourneyId) {
   const originalSrsCoordinates = [];
   for (let i = 0; i < points.length - 1; i++) {
     originalSrsCoordinates.push([
@@ -9,7 +9,7 @@ export async function splitRequest(points, featureIds) {
 
   const requestBody = {
     originalSrsCoordinates: originalSrsCoordinates,
-    featureIds: featureIds.split(',')
+    commandJourneyId: commandJourneyId
   };
   console.log(requestBody);
   const response = await fetch("/api/split/execute", {

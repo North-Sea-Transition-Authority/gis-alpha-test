@@ -8,9 +8,8 @@
   backLinkUrl=backUrl
 >
   <div data-module='split-by-point-and-click-page'
-    data-feature-ids="${featureIds?join(",")}"
+    data-journey-id="${journeyId}"
     data-srs-wkid="${srsWkid?c}"
-    <#if journeyId??>data-journey-id="${journeyId}"</#if>
   >
   </div>
 </@defaultPage>

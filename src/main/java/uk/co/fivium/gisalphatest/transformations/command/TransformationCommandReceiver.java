@@ -1,6 +1,6 @@
 package uk.co.fivium.gisalphatest.transformations.command;
 
-import jakarta.persistence.EntityNotFoundException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -22,58 +22,62 @@ public class TransformationCommandReceiver {
   private final SplitService splitService;
   private final FeatureRepository featureRepository;
   private final TransformationCommandRepository commandRepository;
-  private final CommandJourneyRepository journeyRepository;
   private final FeatureService featureService;
 
   public TransformationCommandReceiver(SplitService splitService,
                                        FeatureRepository featureRepository,
                                        TransformationCommandRepository commandRepository,
-                                       CommandJourneyRepository journeyRepository,
                                        FeatureService featureService) {
     this.splitService = splitService;
     this.featureRepository = featureRepository;
     this.commandRepository = commandRepository;
-    this.journeyRepository = journeyRepository;
     this.featureService = featureService;
   }
 
   /**
    * Executes a split transformation on a list of features using a cutter line.
-   * Will link the resulting features to a {@link TransformationCommand} and deactivate the input features.
+   * Will link resulting split features to a {@link TransformationCommand} and deactivate only input features
+   * that were actually split.
    * Calling this will hard delete any commands that have been undone on the same journey and their outputs.
-   * @param inputFeatures The list of features to be split. They will be deactivated after a successful split.
+   * @param inputFeatures The candidate features to split.
    * @param cutterLine The cutter line used for splitting.
-   * @return The list of resulting features after splitting. They will be linked to a command and be set to active. Empty list if no split took place.
+   * @return The features that were created by the split.
    */
   @Transactional
   public List<Feature> executeSplit(List<Feature> inputFeatures,
                                     String cutterLine) {
-    Optional<UUID> journeyIdOptional = validateAllFeaturesAreInSameJourneyOrThrow(inputFeatures);
+    validateAllFeaturesAreInSameJourneyOrThrow(inputFeatures);
 
-    // Perform the splits
-    List<Feature> outputFeatures = inputFeatures.stream()
-        .flatMap(feature -> splitService.splitPolygon(feature, cutterLine).stream())
-        .toList();
+    List<Feature> affectedInputFeatures = new ArrayList<>();
+    List<Feature> outputFeatures = new ArrayList<>();
+
+    // Track split results per input so command history and active flags only apply to changed features.
+    for (Feature inputFeature : inputFeatures) {
+      List<Feature> splitResult = splitService.splitPolygon(inputFeature, cutterLine);
+      if (!splitResult.isEmpty()) {
+        affectedInputFeatures.add(inputFeature);
+        outputFeatures.addAll(splitResult);
+      }
+    }
 
     if (outputFeatures.isEmpty()) {
       //exit early if no split took place
       return Collections.emptyList();
     }
 
-    CommandJourney journey = journeyIdOptional.isEmpty()
-        ? journeyRepository.save(new CommandJourney())
-        : journeyRepository.findById(journeyIdOptional.get()).orElseThrow(EntityNotFoundException::new);
+    CommandJourney journey = inputFeatures.getFirst().getCommandJourney();
 
     clearUndoStack(journey);
-    TransformationCommand command = createNewTransformationCommand(inputFeatures, journey);
+    TransformationCommand command = createNewTransformationCommand(affectedInputFeatures, journey);
 
-    // Mark input features as inactive
-    inputFeatures.forEach(feature -> feature.setActive(false));
-    featureRepository.saveAll(inputFeatures);
+    // Mark only affected input features as inactive.
+    affectedInputFeatures.forEach(feature -> feature.setActive(false));
+    featureRepository.saveAll(affectedInputFeatures);
 
-    // Link output features to the command
+    // Link output features to the command.
     outputFeatures.forEach(feature -> {
       feature.setCreatedByCommand(command);
+      feature.setCommandJourney(journey);
       feature.setActive(true);
     });
     featureRepository.saveAll(outputFeatures);
@@ -135,17 +139,16 @@ public class TransformationCommandReceiver {
     return outputFeatures;
   }
 
-  private Optional<UUID> validateAllFeaturesAreInSameJourneyOrThrow(List<Feature> features) {
+  private void validateAllFeaturesAreInSameJourneyOrThrow(List<Feature> features) {
     Set<UUID> distinctJourneyIds = features.stream()
-        .map(Feature::getCreatedByCommand)
+        .map(Feature::getCommandJourney)
         .filter(Objects::nonNull)
-        .map(command -> command.getCommandJourney().getId())
+        .map(CommandJourney::getId)
         .collect(Collectors.toSet());
 
     if (distinctJourneyIds.size() > 1) {
       throw new IllegalArgumentException("Cannot split features from different journeys in one command");
     }
-    return distinctJourneyIds.stream().findFirst();
   }
 
   /**
