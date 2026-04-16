@@ -12,6 +12,7 @@ backLinkUrl=backUrl
     data-feature-ids="${featureIds?join(",")}"
     data-srs-wkid="${srsWkid?c}"
     <#if journeyId??>data-journey-id="${journeyId}"</#if>
+    <#if userTestingExtentText??>data-user-testing-extent-text="${userTestingExtentText}"</#if>
   >
   </div>
 </@defaultPage>

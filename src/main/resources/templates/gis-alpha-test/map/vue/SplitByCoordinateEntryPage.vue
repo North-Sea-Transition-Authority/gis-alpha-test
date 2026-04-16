@@ -1,5 +1,8 @@
 <template>
   <single-error :errorMessage="splitError"/>
+  <notification-banner v-if="userTestingExtentText" title="Coordinate entry user testing" heading="Shape extent">
+    {{ userTestingExtentText }}
+  </notification-banner>
   <h1 class="govuk-heading-xl">Feature Map</h1>
   <Link :link-url="splitByPointAndClickUrl" link-text="Switch to split by point and click" link-class="fds-link-button"/>
   <div class="govuk-grid-row">
@@ -22,11 +25,16 @@ import SplitActions from "./SplitActions.vue";
 import SingleError from "./components/SingleError.vue";
 import {bngToWgs84, bngWkid, ed50ToWgs84, ed50Wkid} from "../js/coordinate-system-utils";
 import Link from "./components/Link.vue";
+import NotificationBanner from "./components/NotificationBanner.vue";
 
 const props = defineProps({
   featureIds: String,
   srsWkid: Number,
   journeyId: String,
+  userTestingExtentText: {
+    type: String,
+    required: false
+  }
 });
 
 const splitByPointAndClickUrl = computed(() => `/map/split/point-and-click?featureIds=${encodeURIComponent(currentFeatureIds.value)}`);

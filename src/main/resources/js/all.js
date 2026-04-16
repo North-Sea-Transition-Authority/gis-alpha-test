@@ -27,6 +27,7 @@ for (const element of document.querySelectorAll("[data-module='split-by-coordina
     featureIds: element.dataset.featureIds,
     srsWkid: Number(element.dataset.srsWkid),
     journeyId: element.dataset.journeyId,
+    userTestingExtentText: element.dataset.userTestingExtentText,
   });
   app.use(OpenLayersMap);
   app.mount(element);

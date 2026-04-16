@@ -15,6 +15,7 @@
                 :class="['govuk-input govuk-input--width-3', { 'govuk-input--error': latError }]"
                 :id="'lat-deg-' + index"
                 type="number"
+                step="1"
                 v-model="localLat.d"
                 @input="validateAndEmitLat"
             />
@@ -25,6 +26,7 @@
                 :class="['govuk-input govuk-input--width-3', { 'govuk-input--error': latError }]"
                 :id="'lat-min-' + index"
                 type="number"
+                step="1"
                 v-model="localLat.m"
                 @input="validateAndEmitLat"
             />
@@ -35,6 +37,7 @@
                 :class="['govuk-input govuk-input--width-4', { 'govuk-input--error': latError }]"
                 :id="'lat-sec-' + index"
                 type="number"
+                step="0.001"
                 v-model="localLat.s"
                 @input="validateAndEmitLat"
             />
@@ -69,6 +72,7 @@
                 :class="['govuk-input govuk-input--width-3', { 'govuk-input--error': lonError }]"
                 :id="'lon-deg-' + index"
                 type="number"
+                step="1"
                 v-model="localLon.d"
                 @input="validateAndEmitLon"
             />
@@ -79,6 +83,7 @@
                 :class="['govuk-input govuk-input--width-3', { 'govuk-input--error': lonError }]"
                 :id="'lon-min-' + index"
                 type="number"
+                step="1"
                 v-model="localLon.m"
                 @input="validateAndEmitLon"
             />
@@ -89,6 +94,7 @@
                 :class="['govuk-input govuk-input--width-4', { 'govuk-input--error': lonError }]"
                 :id="'lon-sec-' + index"
                 type="number"
+                step="0.001"
                 v-model="localLon.s"
                 @input="validateAndEmitLon"
             />
@@ -140,6 +146,22 @@ function validateAndEmitLon() {
     return;
   }
 
+  const dStr = String(localLon.d);
+  if (!Number.isInteger(d) || dStr.includes('.')) {
+    lonError.value = 'Longitude degrees must be a whole number.';
+    return;
+  }
+  const mStr = String(localLon.m);
+  if (!Number.isInteger(m) || mStr.includes('.')) {
+    lonError.value = 'Minutes must be a whole number.';
+    return;
+  }
+  const sStr = String(localLon.s);
+  if (sStr.includes('.') && sStr.split('.')[1].length > 3) {
+    lonError.value = 'Seconds cannot exceed 3 decimal places.';
+    return;
+  }
+
   if (d < 0 || d > 180) {
     lonError.value = 'Longitude degrees must be between 0 and 180.';
     return;
@@ -164,6 +186,22 @@ function validateAndEmitLat() {
   const s = parseFloat(localLat.s);
 
   if (isNaN(d) || isNaN(m) || isNaN(s)) {
+    return;
+  }
+
+  const dStr = String(localLat.d);
+  if (!Number.isInteger(d) || dStr.includes('.')) {
+    latError.value = 'Latitude degrees must be a whole number.';
+    return;
+  }
+  const mStr = String(localLat.m);
+  if (!Number.isInteger(m) || mStr.includes('.')) {
+    latError.value = 'Minutes must be a whole number.';
+    return;
+  }
+  const sStr = String(localLat.s);
+  if (sStr.includes('.') && sStr.split('.')[1].length > 3) {
+    latError.value = 'Seconds cannot exceed 3 decimal places.';
     return;
   }
 

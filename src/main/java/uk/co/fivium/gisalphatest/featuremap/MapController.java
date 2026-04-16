@@ -77,7 +77,8 @@ class MapController {
         .addObject("featureIds", idsAsString)
         .addObject("srsWkid", feature.getSrs())
         .addObject("journeyId", getJourneyId(feature))
-        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()));
+        .addObject("backUrl", ReverseRouter.route(on(FeatureSelectionController.class).renderSelectFeatures()))
+        .addObject("userTestingExtentText", getUserTestingShapeExtentText(feature));
   }
 
   @GetMapping("/esrijson")
@@ -121,5 +122,15 @@ class MapController {
         ? null
         : feature.getCreatedByCommand().getCommandJourney().getId().toString();
     return journeyId;
+  }
+
+  private String getUserTestingShapeExtentText(Feature feature) {
+    if (feature.getFeatureName().contains("49/28a")) {
+      return "The feature is located in the region between: 53°57'0\"N, 2°48'0\"E and 53°50'0\"N, 2°54'30\"E";
+    } else if (feature.getFeatureName().contains("110/8b")) {
+      return "The feature is located in the region between: 53°50'0\"N, 3°36'0\"W and 53°40'0\"N, 3°24'0\"W";
+    } else {
+      return null;
+    }
   }
 }
