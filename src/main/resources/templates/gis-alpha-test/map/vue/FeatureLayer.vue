@@ -34,10 +34,21 @@ const props = defineProps({
     required: false,
     default: [0, 0, 0, 1] //black
   },
+  currentDepthLevel: {
+    type: Number,
+    default: null
+  },
+  viewMultipleDepths: {
+    type: Boolean,
+    default: false
+  },
 })
 const esriJson = new EsriJSON();
 const vectorSourceRef = ref(null);
-const featuresUrl = computed(() => `/map/esrijson/${props.journeyId}`);
+const featuresUrl = computed(() => !props.viewMultipleDepths
+    ? `/map/esrijson/${props.journeyId}`
+    : `/map/block-and-subareas/esrijson/${props.journeyId}`
+);
 
 watch(() => props.refreshCounter, async () => {
   await nextTick();
@@ -49,6 +60,18 @@ watch(() => props.refreshCounter, async () => {
 
 
 function featureStyle(feature) {
+  const isCurrentDepthEqualToStartDepth = props.viewMultipleDepths && (
+      Number(feature.get("startDepth") ?? 0) >= Number(props.currentDepthLevel) &&
+      Number(feature.get("endDepth") ?? -100000) < Number(props.currentDepthLevel)
+  );
+
+  if (!isCurrentDepthEqualToStartDepth) {
+    return new Style({stroke: new Stroke({
+        color: [0, 0, 0, 0, 0],
+        width: 0
+      }),
+    });
+  }
   return new Style({
     stroke: new Stroke({
       color: [...props.strokeColor, 1],

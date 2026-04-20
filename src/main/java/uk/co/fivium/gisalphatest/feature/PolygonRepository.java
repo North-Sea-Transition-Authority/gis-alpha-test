@@ -9,5 +9,7 @@ public interface PolygonRepository extends ListCrudRepository<Polygon, UUID> {
 
   List<Polygon> findAllByFeature(Feature feature);
 
+  List<Polygon> findAllByFeatureIn(List<Feature> feature);
+
   void deleteAllByFeatureIn(Collection<Feature> features);
 }

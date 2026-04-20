@@ -7,7 +7,14 @@
     <nsta-quadrant-layer :ol-map="mapRef"/>
     <nsta-quadrant-block-layer :ol-map="mapRef"/>
     <snap-points-layer v-if="displaySnapPointLayer" :ol-map="mapRef" v-model:coordinates="modelValue" :srsWkid="props.srsWkid"/>
-    <feature-layer :journey-id="journeyId" :refresh-counter="refreshCounter" :ol-map="mapRef"/>
+    <feature-layer
+        :key="currentDepthLevel"
+        :journey-id="journeyId"
+        :refresh-counter="refreshCounter"
+        :ol-map="mapRef"
+        :current-depth-level="currentDepthLevel"
+        :view-multiple-depths="viewMultipleDepths"
+    />
     <split-line-layer :coordinates="modelValue"/>
   </ol-map>
 </template>
@@ -42,7 +49,15 @@ const props = defineProps({
   srsWkid: {
     type: Number,
     required: true
-  }
+  },
+  currentDepthLevel: {
+    type: Number,
+    default: undefined
+  },
+  viewMultipleDepths: {
+    type: Boolean,
+    default: false
+  },
 })
 
 const mapRef = ref(null);

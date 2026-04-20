@@ -5,6 +5,7 @@ import OpenLayersMap from "vue3-openlayers";
 import SplitByCoordinateEntryPage from "../templates/gis-alpha-test/map/vue/SplitByCoordinateEntryPage.vue";
 import InteractiveRenderPage from "../templates/gis-alpha-test/map/vue/InteractiveRenderPage.vue";
 import StaticRenderPage from "../templates/gis-alpha-test/map/vue/StaticRenderPage.vue";
+import DepthSplitByPointAndClickPage from "../templates/gis-alpha-test/map/vue/DepthSplitByPointAndClickPage.vue";
 
 for (const element of document.querySelectorAll("[data-module='test-map']")) {
   const app = createApp(TestMap);
@@ -16,6 +17,17 @@ for (const element of document.querySelectorAll("[data-module='split-by-point-an
   const app = createApp(SplitByPointAndClickPage, {
     srsWkid: Number(element.dataset.srsWkid),
     journeyId: element.dataset.journeyId,
+  });
+  app.use(OpenLayersMap);
+  app.mount(element);
+}
+
+for (const element of document.querySelectorAll("[data-module='depth-split-by-point-and-click-page']")) {
+  const featureIdAndDepths = JSON.parse(element.dataset.featureIdAndDepths || '[]');
+  const app = createApp(DepthSplitByPointAndClickPage, {
+    featureId: element.dataset.featureId,
+    featureIdAndDepths: featureIdAndDepths,
+    srsWkid: Number(element.dataset.srsWkid),
   });
   app.use(OpenLayersMap);
   app.mount(element);

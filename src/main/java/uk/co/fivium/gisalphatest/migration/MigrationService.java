@@ -8,6 +8,7 @@ import static uk.co.fivium.gisalphatest.migration.Srs.fromOracleName;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -92,7 +93,10 @@ public class MigrationService {
       resetDataBase();
     }
 
-    var entityBackedOracleShapes = oracleService.getEntityBackedOracleShapes(ids);
+    var entityBackedOracleShapes = oracleService.getEntityBackedOracleShapes(ids)
+        .stream()
+        .sorted(Comparator.comparing(shape -> shape.shape().getShapeType() != ShapeType.BLOCK))
+        .toList();
 
     for (var entityBackedShape : entityBackedOracleShapes) {
       System.out.printf("migrating %s %s%n", entityBackedShape.shape().getShapeSidId(), entityBackedShape.shape().getShapeName());
@@ -369,8 +373,8 @@ public class MigrationService {
     polygon.setOraclePolygonSsid(polygonSidId);
     polygon.setAttributes(attributes);
     polygon.setFeature(feature);
-    polygon.setStartDepth(startDepth);
-    polygon.setEndDepth(endDepth);
+    polygon.setStartDepth(Math.abs(startDepth) == 999999999L ? null : startDepth);
+    polygon.setEndDepth(Math.abs(endDepth) == 999999999L ? null : endDepth);
     return polygon;
   }
 

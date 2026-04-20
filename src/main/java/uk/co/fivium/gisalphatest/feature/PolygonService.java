@@ -11,14 +11,16 @@ public class PolygonService {
 
   private final FeatureService featureService;
   private final GrpcClientService grpcClientService;
+  private final LineRepository lineRepository;
 
   public PolygonService(
       FeatureService featureService,
-      GrpcClientService grpcClientService
-  ) {
+      GrpcClientService grpcClientService,
+      LineRepository lineRepository) {
     this.featureService = featureService;
 
     this.grpcClientService = grpcClientService;
+    this.lineRepository = lineRepository;
   }
 
   /**
@@ -44,6 +46,27 @@ public class PolygonService {
   public List<String> getPolygonsAsEsriJson(Feature feature, boolean densifyLoxodromeLines) {
     var entityBackedFeature = featureService.getEntityBackedFeature(feature);
     return getPolygonsAsEsriJson(entityBackedFeature, densifyLoxodromeLines);
+  }
+
+  /**
+   *  Generates all the EsriJSON polygons for a given polygon.
+   * @param polygon the polygon whose EsriJSON representation will be built.
+   * @param srs the srs of the polygon
+   * @param densifyLoxodromeLines true if the loxodrome lines on the feature should be densified before the polygon is built (usually true if calculating the area).
+   * @return EsriJSON polygon of the given polygon
+   */
+  public String getPolygonAsEsriJson(Polygon polygon, Integer srs, boolean densifyLoxodromeLines) {
+    var lineJsons = lineRepository.findAllByPolygon(polygon)
+        .stream()
+        .sorted(Comparator.comparing(Line::getRingConnectionOrder))
+        .map(line -> {
+          if (densifyLoxodromeLines && LineNavigationType.LOXODROME.equals(line.getNavigationType())) {
+            return grpcClientService.densifyLoxodromePolyline(line.getLineJson());
+          }
+          return line.getLineJson();
+        })
+        .toList();
+    return grpcClientService.buildPolygon(lineJsons, srs);
   }
 
   private List<String> getPolygonsAsEsriJson(EntityBackedFeature entityBackedFeature, boolean densifyLoxodromeLines) {
