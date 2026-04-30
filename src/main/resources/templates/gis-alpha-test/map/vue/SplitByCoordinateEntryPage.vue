@@ -1,7 +1,12 @@
 <template>
   <single-error :errorMessage="splitError"/>
-  <notification-banner v-if="userTestingExtentText" title="Coordinate entry user testing" heading="Shape extent">
-    {{ userTestingExtentText }}
+  <notification-banner v-if="userTestingExtentText" title="Coordinate entry user testing">
+    <p>
+      Split 1: 53°49'30"N, 3°32'0"W and 53°46'0"N, 3°23'30"W
+    </p>
+    <p>
+      Split 2: 53°50'0"N, 3°31'0"W and 53°49'0"N, 3°24'0"W
+    </p>
   </notification-banner>
   <h1 class="govuk-heading-xl">Feature Map</h1>
   <Link :link-url="splitByPointAndClickUrl" link-text="Switch to split by point and click" link-class="fds-link-button"/>
